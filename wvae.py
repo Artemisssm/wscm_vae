@@ -113,6 +113,7 @@ def reparameterize(mu, sigma, std=1):
 
 class WVAE(nn.Module):
     num_iter = 0
+
     def __init__(self, latent_dim=64, conv_dim=32, image_size=64,
                  enc_dist='gaussian', enc_arch='resnet', enc_fc_size=2048, enc_noise_dim=128, dec_dist='implicit',
                  prior='gaussian', num_label=None, A=None, anneal_steps=200, alpha=1, beta=6, gamma=1):
@@ -127,7 +128,6 @@ class WVAE(nn.Module):
         self.alpha = alpha
         self.beta = beta
         self.gamma = gamma
-
 
         self.encoder = Encoder(latent_dim, enc_arch, enc_dist, enc_fc_size, enc_noise_dim)
         self.decoder = Decoder(latent_dim, conv_dim, image_size, dec_dist)
@@ -154,7 +154,7 @@ class WVAE(nn.Module):
         else:  # gaussian
             return self.decoder(z, mu=mean)
 
-    def traverse(self, eps, gap=6, n=10):
+    def traverse(self, eps, gap=3, n=10):
         dim = self.num_label if self.num_label is not None else self.latent_dim  # 如果self.num_label不是None，就把它赋值给dim，否则就把self.latent_dim赋值给dim
         sample = torch.zeros((n * dim, 3, self.image_size, self.image_size))  # 生成一个全零张量，并赋值给sample
         eps = eps.expand(n, self.latent_dim)  # 把eps扩展到(n, self.latent_dim)的维度，并赋值给eps
@@ -178,16 +178,17 @@ class WVAE(nn.Module):
         if x is not None and z is None:  # 如果x和z都不是None
             if self.enc_dist == 'gaussian':  # 如果self.enc_dist是'gaussian'
                 z_mu, z_logvar = self.encoder(x)  # 调用self.encoder，得到隐变量的均值和对数方差，并赋值给z_mu和z_logvar
-                z_fake = reparameterize(z_mu, (z_logvar / 2).exp())
             else:  # deterministic or implicit
                 z_fake = self.encoder(x)  # 调用self.encoder，得到隐变量，并赋值给z_fake
 
+
             if 'scm' in self.prior_dist:  # 如果self.prior_dist中包含'scm'
                 # in prior
-                label_z = self.prior(z_fake[:, :self.num_label])  # 调用self.prior，得到z的前self.num_label个维度经过因果层后的输出，并赋值给label_z
-                other_z = z_fake[:, self.num_label:]  # 得到z的剩余维度，并赋值给other_z
-                z = torch.cat([label_z, other_z], dim=1)  # 把label_z和other_z在第二个维度上拼接起来，并赋值给z
+                label_z = self.prior(z_mu[:, :self.num_label])  # 调用self.prior，得到z的前self.num_label个维度经过因果层后的输出，并赋值给label_z
+                other_z = z_mu[:, self.num_label:]  # 得到z的剩余维度，并赋值给other_z
+                z_fake = torch.cat([label_z, other_z], dim=1)  # 把label_z和other_z在第二个维度上拼接起来，并赋值给z
 
+            z = reparameterize(z_fake, (z_logvar / 2).exp())
 
             x_fake = self.decoder(z)  # 调用self.decoder，得到生成的图像，并赋值给x_fake
 

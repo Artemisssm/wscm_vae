@@ -7,8 +7,8 @@ def get_config():
 
     # Data settings
     parser.add_argument('--image_size', type=int, default=128)
-    parser.add_argument('--dataset', type=str, default='pendulum', choices=['celeba', 'pendulum', 'human', 'tree'])
-    parser.add_argument('--data_dir', type=str, default='./data/pendulum/', help='data directory')
+    parser.add_argument('--dataset', type=str, default='tree', choices=['celeba', 'pendulum', 'human', 'tree'])
+    parser.add_argument('--data_dir', type=str, default='./data/c3dtree/', help='data directory')
 
     # Training settings
     parser.add_argument('--batch_size', type=int, default=64)
@@ -26,11 +26,12 @@ def get_config():
     parser.add_argument('--seed', type=int, default=51)
 
     # Model settings
-    parser.add_argument('--latent_dim', type=int, default=6)
+    parser.add_argument('--latent_dim', type=int, default=9)
     parser.add_argument('--sup_coef', type=float, default=1, help='coefficient of the supervised regularizer')
     parser.add_argument('--sup_prop', type=float, default=1, help='proportion of supervised labels')
     parser.add_argument('--sup_type', type=str, default='ce', choices=['ce', 'l2'])
-    parser.add_argument('--labels', type=str, default='pend', help='name of the underlying structure')
+
+    parser.add_argument('--labels', type=str, default='tre', help='name of the underlying structure')
 
     # Prior settings
     parser.add_argument('--prior', type=str, default='nlrscm', choices=['gaussian', 'uniform', 'linscm', 'nlrscm'],

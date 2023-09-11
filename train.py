@@ -140,7 +140,7 @@ for epoch in range(args.start_epoch, args.start_epoch + args.n_epochs):
             label = label.to(device)  # 把label转移到device上，并赋值给label
 
         if 'scm' in args.prior:
-            z_fake, x_fake, z, z_fake_mean, z_fake_logvar = model(x)
+           z_fake, x_fake, z, z_fake_mean, z_fake_logvar = model(x)
         else:
             z_fake, x_fake, z_fake_mean, z_fake_logvar = model(x)
 
@@ -163,7 +163,7 @@ for epoch in range(args.start_epoch, args.start_epoch + args.n_epochs):
 
         loss_encoder = sup_loss * args.sup_coef # 把loss_encoder和sup_loss乘以args.sup_coef的结果相加，并赋值给loss_encoder
 
-        loss_decoder = model.module.loss_function(x_fake, x, z_fake_mean, z_fake_logvar, z)['loss']
+        loss_decoder = model.module.loss_function(x_fake, x, z_fake, z_fake_logvar, z)['loss']
         loss = loss_encoder + loss_decoder
         model.module.zero_grad()
         if epoch == 1:
