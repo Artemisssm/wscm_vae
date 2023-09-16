@@ -7,11 +7,11 @@ def get_config():
 
     # Data settings
     parser.add_argument('--image_size', type=int, default=128)
-    parser.add_argument('--dataset', type=str, default='tree', choices=['celeba', 'pendulum', 'human', 'tree'])
-    parser.add_argument('--data_dir', type=str, default='./data/c3dtree/', help='data directory')
+    parser.add_argument('--dataset', type=str, default='pendulum', choices=['celeba', 'pendulum', 'human', 'tree'])
+    parser.add_argument('--data_dir', type=str, default='./data/pendulum/', help='data directory')
 
     # Training settings
-    parser.add_argument('--batch_size', type=int, default=64)
+    parser.add_argument('--batch_size', type=int, default=128)
     parser.add_argument('--lr_g', type=float, default=5e-5)
     parser.add_argument('--lr_e', type=float, default=5e-5)
     parser.add_argument('--lr_d', type=float, default=1e-4)
@@ -21,17 +21,16 @@ def get_config():
     parser.add_argument('--beta2', type=float, default=0.999)
     parser.add_argument('--d_steps_per_iter', type=int, default=1, help='how many D updates per iteration')
     parser.add_argument('--g_steps_per_iter', type=int, default=1, help='how many G updates per iteration')
-    parser.add_argument('--n_epochs', type=int, default=200)
+    parser.add_argument('--n_epochs', type=int, default=300)
     parser.add_argument('--start_epoch', type=int, default=1)
-    parser.add_argument('--seed', type=int, default=51)
+    parser.add_argument('--seed', type=int, default=3)
 
     # Model settings
-    parser.add_argument('--latent_dim', type=int, default=9)
+    parser.add_argument('--latent_dim', type=int, default=6)
     parser.add_argument('--sup_coef', type=float, default=1, help='coefficient of the supervised regularizer')
     parser.add_argument('--sup_prop', type=float, default=1, help='proportion of supervised labels')
     parser.add_argument('--sup_type', type=str, default='ce', choices=['ce', 'l2'])
-
-    parser.add_argument('--labels', type=str, default='tre', help='name of the underlying structure')
+    parser.add_argument('--labels', type=str, default='pend', help='name of the underlying structure')
 
     # Prior settings
     parser.add_argument('--prior', type=str, default='nlrscm', choices=['gaussian', 'uniform', 'linscm', 'nlrscm'],
@@ -50,9 +49,11 @@ def get_config():
     parser.add_argument('--dec_dist', type=str, default='implicit', choices=['deterministic', 'gaussian', 'implicit'],
                         help='generator distribution')
     parser.add_argument('--g_conv_dim', type=int, default=32, help='base number of channels in encoder and generator')
+
     # Discriminator settings
     parser.add_argument('--dis_fc_size', type=int, default=512, help='number of nodes in fc layer of joint discriminator')
     parser.add_argument('--d_conv_dim', type=int, default=32, help='base number of channels in discriminator')
+
 
     # Pretrained model
     parser.add_argument('--resume', action='store_true')
@@ -64,13 +65,18 @@ def get_config():
     parser.add_argument('--sample_every_epoch', type=int, default=1)
     parser.add_argument('--save_model_every', type=int, default=5)
     parser.add_argument('--save_name', type=str, default='')
-    parser.add_argument('--save_n_samples', type=int, default=16)
-    parser.add_argument('--save_n_recons', type=int, default=8)
+    parser.add_argument('--save_n_samples', type=int, default=64)
+    parser.add_argument('--save_n_recons', type=int, default=32)
     parser.add_argument('--nrow', type=int, default=8)
-    parser.add_argument('--anneal_steps', type=int, default=10000)
+
+
+    # loss
     parser.add_argument('--alpha', type=float, default=1.)
-    parser.add_argument('--beta', type=float, default=4.)
+    parser.add_argument('--beta', type=float, default=2.)
     parser.add_argument('--gamma', type=float, default=1.)
+    parser.add_argument('--reconstruction_loss', type=str, default='mse', choices=['mse', 'bce'])
+    parser.add_argument('--use_mss', type=bool, default=True)
+
 
     args = parser.parse_args()
 

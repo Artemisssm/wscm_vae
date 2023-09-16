@@ -7,8 +7,11 @@ from tqdm import tqdm
 from utils import *
 from torchvision.utils import save_image
 from torch.nn import functional as F
+import matplotlib.pyplot as plt
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '2'
+import seaborn as sns
+
+os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 device = torch.device('cuda')
 args = get_config()
 
@@ -27,8 +30,8 @@ else:
         raise NotImplementedError("Not supported structure.")
 num_label = len(label_idx)
 
-save_dir = './results/{}/{}_{}_sup{}/'.format(
-    args.dataset, args.labels, args.prior, str(args.sup_type))
+save_dir = './results/{}/{}_{}_sup{}_seed{}/'.format(
+    args.dataset, args.labels, args.prior, str(args.sup_type), args.seed)
 utils.make_folder(save_dir)
 utils.write_config_to_file(args, save_dir)
 
@@ -64,11 +67,11 @@ if 'scm' in args.prior:
 else:
     A = None
 
-
 print('Build models...')
 model = WVAE(args.latent_dim, args.g_conv_dim, args.image_size,
-            args.enc_dist, args.enc_arch, args.enc_fc_size, args.enc_noise_dim, args.dec_dist,
-            args.prior, num_label, A, args.anneal_steps, args.alpha, args.beta, args.gamma)
+             args.enc_dist, args.enc_arch, args.enc_fc_size, args.enc_noise_dim, args.dec_dist,
+             args.prior, num_label, A, args.alpha, args.beta, args.gamma, args.reconstruction_loss, args.use_mss)
+
 
 A_optimizer = None
 prior_optimizer = None
@@ -77,58 +80,68 @@ if 'scm' in args.prior:
     dec_param = model.decoder.parameters()  # 获取模型的解码器的参数，并转换成列表赋值给dec_param
     prior_param = list(model.prior.parameters())  # 获取模型的先验的参数，并转换成列表赋值给prior_param
     A_optimizer = optim.Adam(prior_param[0:1], lr=args.lr_a)  # 创建一个Adam优化器，用来优化prior_param中的第一个参数（即A），并赋值给A_optimizer
-    prior_optimizer = optim.Adam(prior_param[1:], lr=args.lr_p, betas=(args.beta1, args.beta2))  # 创建一个Adam优化器，用来优化prior_param中的其余参数，并赋值给prior_optimizer
+    prior_optimizer = optim.Adam(prior_param[1:], lr=args.lr_p, betas=(
+        args.beta1, args.beta2))  # 创建一个Adam优化器，用来优化prior_param中的其余参数，并赋值给prior_optimizer
 else:
     enc_param = model.encoder.parameters()
     dec_param = model.decoder.parameters()
 
-encoder_optimizer = optim.Adam(enc_param, lr=args.lr_e, betas=(args.beta1, args.beta2)) # 创建一个Adam优化器，用来优化enc_param中的参数，并赋值给encoder_optimizer
-decoder_optimizer = optim.Adam(dec_param, lr=args.lr_g, betas=(args.beta1, args.beta2)) # 创建一个Adam优化器，用来优化dec_param中的参数，并赋值给decoder_optimizer
+encoder_optimizer = optim.Adam(enc_param, lr=args.lr_e,
+                               betas=(args.beta1, args.beta2))  # 创建一个Adam优化器，用来优化enc_param中的参数，并赋值给encoder_optimizer
+decoder_optimizer = optim.Adam(dec_param, lr=args.lr_g,
+                               betas=(args.beta1, args.beta2))  # 创建一个Adam优化器，用来优化dec_param中的参数，并赋值给decoder_optimizer
+
 
 model = nn.DataParallel(model.to(device))
+
+
+def test(epoch, i, model, test_data, save_dir, fixed_noise, fixed_zeros):
+    model.eval()
+    with torch.no_grad():  # 不计算梯度
+        x = test_data.to(device)  # 把测试数据转移到device上，并赋值给x
+
+        # Reconstruction
+        x_recon = model(x, recon=True)  # 调用模型，得到重建后的图像，并赋值给x_recon
+        recons = utils.draw_recon(x.cpu(), x_recon.cpu())  # 调用utils.draw_recon函数，绘制原始图像和重建图像的对比，并赋值给recons
+        del x_recon  # 删除x_recon，释放内存
+        save_image(recons, save_dir + 'recon_' + str(epoch) + '_' + str(i) + '.png', nrow=args.nrow,normalize=True, scale_each=True)  # 保存recons到指定的路径，使用args.nrow指定每行的图片数量，使用normalize和scale_each进行归一化
+
+        # Generation
+        sample = model(z=fixed_noise).cpu()  # 调用模型，得到生成的图像，并转移到cpu上，并赋值给sample
+        save_image(sample, save_dir + 'gen_' + str(epoch) + '_' + str(i) + '.png', normalize=True,scale_each=True)  # 保存sample到指定的路径，使用normalize和scale_each进行归一化
+
+        # Traversal (given a fixed traversal range)
+        sample = model.module.traverse(fixed_zeros).cpu()  # 调用model.module.traverse函数，得到遍历隐变量后的图像，并转移到cpu上，并赋值给sample
+        save_image(sample, save_dir + 'trav_' + str(epoch) + '_' + str(i) + '.png', normalize=True, scale_each=True, nrow=10)  # 保存sample到指定的路径，使用normalize和scale_each进行归一化，使用nrow=10指定每行的图片数量
+        del sample  # 删除sample，释放内存
+
+    model.train()
+
 
 if args.prior == 'uniform':  # 如果先验分布是均匀分布
     fixed_noise = torch.rand(args.save_n_samples, args.latent_dim,
                              device=device) * 2 - 1  # 生成一个服从[-1,1]区间的随机张量，并赋值给fixed_noise
 else:  # 否则
-    fixed_noise = torch.randn(args.save_n_samples, args.latent_dim, device=device)  # 生成一个服从标准正态分布的随机张量，并赋值给fixed_noise
+    fixed_noise = torch.randn(args.save_n_samples, args.latent_dim,
+                              device=device)  # 生成一个服从标准正态分布的随机张量，并赋值给fixed_noise
 fixed_unif_noise = torch.rand(1, args.latent_dim, device=device) * 2 - 1  # 生成一个服从[-1,1]区间的随机张量，并赋值给fixed_unif_noise
 fixed_zeros = torch.zeros(1, args.latent_dim, device=device)  # 生成一个全零张量，并赋值给fixed_zeros
 
-def test(epoch, i, model, test_data, save_dir, fixed_noise, fixed_zeros):
-    model.eval()
-    with torch.no_grad(): # 不计算梯度
-        x = test_data.to(device) # 把测试数据转移到device上，并赋值给x
 
-        # Reconstruction
-        x_recon = model(x, recon=True) # 调用模型，得到重建后的图像，并赋值给x_recon
-        recons = utils.draw_recon(x.cpu(), x_recon.cpu()) # 调用utils.draw_recon函数，绘制原始图像和重建图像的对比，并赋值给recons
-        del x_recon # 删除x_recon，释放内存
-        save_image(recons, save_dir + 'recon_' + str(epoch) + '_' + str(i) + '.png', nrow=args.nrow,
-                   normalize=True, scale_each=True) # 保存recons到指定的路径，使用args.nrow指定每行的图片数量，使用normalize和scale_each进行归一化
-
-        # Generation
-        sample = model(z=fixed_noise).cpu() # 调用模型，得到生成的图像，并转移到cpu上，并赋值给sample
-        save_image(sample, save_dir + 'gen_' + str(epoch) + '_' + str(i) + '.png', normalize=True, scale_each=True) # 保存sample到指定的路径，使用normalize和scale_each进行归一化
-
-        # Traversal (given a fixed traversal range)
-        sample = model.module.traverse(fixed_zeros).cpu() # 调用model.module.traverse函数，得到遍历隐变量后的图像，并转移到cpu上，并赋值给sample
-        save_image(sample, save_dir + 'trav_' + str(epoch) + '_' + str(i) + '.png', normalize=True, scale_each=True, nrow=10) # 保存sample到指定的路径，使用normalize和scale_each进行归一化，使用nrow=10指定每行的图片数量
-        del sample # 删除sample，释放内存
-
-    model.train()
 
 print('Start training...')
 for epoch in range(args.start_epoch, args.start_epoch + args.n_epochs):
     pbar = tqdm(train_loader, total=len(train_loader), desc=f'Epoch {epoch}')
+
     model.train()
+
     for batch_idx, (x, label) in enumerate(pbar):
         x = x.to(device)
-        sup_flag = label[:, 0] != -1 # 判断label的第一列是否不等于-1，得到一个布尔张量，并赋值给sup_flag
-        if sup_flag.sum() > 0: # 如果sup_flag中为True的元素个数大于0，说明有有效的标签
-            label = label[sup_flag, :][:, label_idx].float() # 用sup_flag筛选出有效的标签，并用label_idx选择需要的列，然后转换成浮点类型，并赋值给label
-        if 'pendulum' or 'tree' in args.dataset: # 如果args.dataset中包含'pendulum'或者'human'
-            if args.sup_type == 'ce': # 如果args.sup_type是'ce'
+        sup_flag = label[:, 0] != -1  # 判断label的第一列是否不等于-1，得到一个布尔张量，并赋值给sup_flag
+        if sup_flag.sum() > 0:  # 如果sup_flag中为True的元素个数大于0，说明有有效的标签
+            label = label[sup_flag, :][:, label_idx].float()  # 用sup_flag筛选出有效的标签，并用label_idx选择需要的列，然后转换成浮点类型，并赋值给label
+        if 'pendulum' or 'tree' in args.dataset:  # 如果args.dataset中包含'pendulum'或者'human'
+            if args.sup_type == 'ce':  # 如果args.sup_type是'ce'
                 # Normalize labels to 0,1
                 scale = get_scale(train_set)  # 调用get_scale函数，获取训练集的最小值和最大值，并赋值给scale
                 label = (label - scale[0]) / (scale[1] - scale[0])  # 用scale对label进行归一化，使其范围在0到1之间，并赋值给label
@@ -139,71 +152,94 @@ for epoch in range(args.start_epoch, args.start_epoch + args.n_epochs):
             num_labels = len(label_idx)  # 获取label_idx的长度，并赋值给num_labels
             label = label.to(device)  # 把label转移到device上，并赋值给label
 
-        if 'scm' in args.prior:
-           z_fake, x_fake, z, z_fake_mean, z_fake_logvar = model(x)
-        else:
-            z_fake, x_fake, z_fake_mean, z_fake_logvar = model(x)
 
         # train model
         # model.zero_grad()
-        if sup_flag.sum() > 0:  # 如果sup_flag中为True的元素个数大于0，说明有有效的标签
-            label_z = z[sup_flag, :num_labels]  # 用sup_flag筛选出有效的隐变量，并用num_labels选择需要的列，并赋值给label_z
-            if 'pendulum' or 'tree' in args.dataset:  # 如果args.dataset中包含'pendulum'
-                if args.sup_type == 'ce':  # 如果args.sup_type是'ce'
-                    # CE loss
-                    sup_loss = celoss(label_z, label)  # 计算label_z和label之间的交叉熵损失，并赋值给sup_loss
+        for _ in range(args.g_steps_per_iter):
+
+            if 'scm' in args.prior:
+                z_fake, x_fake, z, z_fake_mean, z_fake_logvar = model(x)
+            else:
+                z_fake, x_fake, z_fake_mean, z_fake_logvar = model(x)
+
+
+            if sup_flag.sum() > 0:  # 如果sup_flag中为True的元素个数大于0，说明有有效的标签
+                label_z = z_fake_mean[sup_flag, :num_labels]  # 用sup_flag筛选出有效的隐变量，并用num_labels选择需要的列，并赋值给label_z
+                if 'pendulum' or 'tree' in args.dataset:  # 如果args.dataset中包含'pendulum'
+                    if args.sup_type == 'ce':  # 如果args.sup_type是'ce'
+                        # CE loss
+                        sup_loss = celoss(label_z, label)  # 计算label_z和label之间的交叉熵损失，并赋值给sup_loss
+                    else:  # 否则
+                        # l2 loss
+                        sup_loss = nn.MSELoss()(label_z, label)  # 计算label_z和label之间的均方误差损失，并赋值给sup_loss
                 else:  # 否则
-                    # l2 loss
-                    sup_loss = nn.MSELoss()(label_z, label)  # 计算label_z和label之间的均方误差损失，并赋值给sup_loss
+                    sup_loss = celoss(label_z, label)  # 计算label_z和label之间的交叉熵损失，并赋值给sup_loss，label是经过先验之后得到的标签，label_z是刚得到的标签
             else:  # 否则
-                sup_loss = celoss(label_z, label)  # 计算label_z和label之间的交叉熵损失，并赋值给sup_loss，label是经过先验之后得到的标签，label_z是刚得到的标签
-        else:  # 否则
-            sup_loss = torch.zeros([1], device=device)  # 生成一个全零张量，并赋值给sup_loss
+                sup_loss = torch.zeros([1], device=device)  # 生成一个全零张量，并赋值给sup_loss
 
+            loss, recon_loss, kld = model.module.loss_function(x_fake, x, z_fake_mean, z_fake_logvar, z_fake)
 
-        loss_encoder = sup_loss * args.sup_coef # 把loss_encoder和sup_loss乘以args.sup_coef的结果相加，并赋值给loss_encoder
+            # model.module.zero_grad()
+            # loss_encoder.backward(retain_graph=True)  # 对loss_encoder进行反向传播，计算梯度
+            #
+            # encoder_optimizer.step()  # 调用encoder_optimizer，更新编码器的参数
+            # if 'scm' in args.prior:  # 如果args.prior中包含'scm'
+            #     prior_optimizer.step()  # 调用prior_optimizer，更新先验网络的参数
+            loss = loss + sup_loss
 
-        loss_decoder = model.module.loss_function(x_fake, x, z_fake, z_fake_logvar, z)['loss']
-        loss = loss_encoder + loss_decoder
-        model.module.zero_grad()
-        if epoch == 1:
-            if batch_idx != 0:
+            model.module.zero_grad()
+            # if epoch == 1:
+            #     if batch_idx != 0:
+            #         model.module.prior.set_zero_grad()
+            # else:
+            #     model.module.prior.set_zero_grad()
+
+            loss.backward()  # 对loss_decoder进行反向传播，计算梯度
+            encoder_optimizer.step()
+            decoder_optimizer.step()  # 调用decoder_optimizer，更新解码器的参数
+            if 'scm' in args.prior:  # 如果args.prior中包含'scm'
                 model.module.prior.set_zero_grad()
-        else:
-            model.module.prior.set_zero_grad()
-        loss.backward()
-        encoder_optimizer.step()
-        decoder_optimizer.step()
-        if 'scm' in args.prior:  # 如果args.prior中包含'scm'
-            A_optimizer.step()  # 调用A_optimizer，更新因果层的参数
-            prior_optimizer.step()  # 调用prior_optimizer，更新先验网络的参数
+                A_optimizer.step()  # 调用A_optimizer，更新因果层的参数
+                prior_optimizer.step()  # 调用prior_optimizer，更新先验网络的参数
 
-        if batch_idx == 0 or (batch_idx + 1) % args.print_every == 0:
-            log = ('Train Epoch: {} ({:.0f}%)\t, Encoder loss: {:.4f}, Decoder loss: {:.4f}, Sup loss: {:.4f}'.format(
-                epoch, 100. * batch_idx / len(train_loader),
-                loss_encoder.item(), loss_decoder.item(), sup_loss.item()))
-            print(log)
-            log_file.write(log + '\n')
-            log_file.flush()
+            # loss_encoder = sup_loss * args.sup_coef  # 把loss_encoder和sup_loss乘以args.sup_coef的结果相加，并赋值给loss_encoder
+            #
+            # loss_decoder = model.module.loss_function(x_fake, x, z_fake, z_fake_logvar, z)['loss']
+            # loss = loss_encoder + loss_decoder
+            # model.module.zero_grad()
+            # if epoch == 1:
+            #     if batch_idx != 0:
+            #         model.module.prior.set_zero_grad()
+            # else:
+            #     model.module.prior.set_zero_grad()
+            # loss.backward()
+            # encoder_optimizer.step()
+            # decoder_optimizer.step()
+            # if 'scm' in args.prior:  # 如果args.prior中包含'scm'
+            #     A_optimizer.step()  # 调用A_optimizer，更新因果层的参数
+            #     prior_optimizer.step()  # 调用prior_optimizer，更新先验网络的参数
 
-        if (epoch == 1 or epoch % args.sample_every_epoch == 0) and batch_idx == len(train_loader) - 1: # 如果epoch是1或者能被args.sample_every_epoch整除，并且batch_idx是最后一个批次的索引
-            test(epoch, batch_idx + 1, model, x[:args.save_n_recons], save_dir, fixed_noise, fixed_zeros) # 调用test函数，传入epoch, batch_idx + 1, model, x的前args.save_n_recons
+            if batch_idx == 0 or (batch_idx + 1) % args.print_every == 0:
+                log = (
+                    'Train Epoch: {} ({:.0f}%)\t, kl_loss: {:.4f}, rec_loss:{:.4f}, Sup loss: {:.4f}, loss: {:.4f}'.format(
+                        epoch, 100. * batch_idx / len(train_loader),
+                        kld.item(), recon_loss.item(), sup_loss.item(), loss.item()))
+                print(log)
+                log_file.write(log + '\n')
+                log_file.flush()
 
+            if (epoch == 1 or epoch % args.sample_every_epoch == 0) and batch_idx == len(train_loader) - 1:  # 如果epoch是1或者能被args.sample_every_epoch整除，并且batch_idx是最后一个批次的索引
+                test(epoch, batch_idx + 1, model, x[:args.save_n_recons], save_dir, fixed_noise, fixed_zeros)  # 调用test函数，传入epoch, batch_idx + 1, model, x的前args.save_n_recons
 
+            if (epoch == 1 or epoch % 10 == 0) and batch_idx == len(train_loader) - 1:
+                fig_name = 'prior_A_{}'.format(epoch)
+                fig_path = save_dir + '/' + fig_name
+                plt.figure()
+                fig = sns.heatmap(prior_param[0:1][0].data.cpu().numpy(), annot=True, cmap='Blues')
+                heatmap = fig.get_figure()
+                heatmap.savefig(fig_path, dpi=400)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+            if (epoch % 100 == 0) and batch_idx == len(train_loader) - 1:
+                torch.save(model.state_dict(), save_dir + "model_" + str(epoch) + ".pth")
 
 

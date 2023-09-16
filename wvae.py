@@ -105,18 +105,18 @@ class Decoder(nn.Module):
 # print(x)
 
 
-def reparameterize(mu, sigma, std=1):
-    assert mu.shape == sigma.shape
-    eps = mu.new(mu.shape).normal_(0, std)
-    return mu + sigma * eps
+def reparameterize(mu, sigma):
+    # assert mu.shape == sigma.shape
+    # eps = mu.new(mu.shape).normal_(0, std)
+    eps = torch.randn_like(sigma)
+    return mu + eps * sigma
 
 
 class WVAE(nn.Module):
-    num_iter = 0
 
     def __init__(self, latent_dim=64, conv_dim=32, image_size=64,
                  enc_dist='gaussian', enc_arch='resnet', enc_fc_size=2048, enc_noise_dim=128, dec_dist='implicit',
-                 prior='gaussian', num_label=None, A=None, anneal_steps=200, alpha=1, beta=6, gamma=1):
+                 prior='gaussian', num_label=None, A=None, alpha=1, beta=6, gamma=1, reconstruction_loss='mse', use_mss = True):
         super().__init__()
         self.latent_dim = latent_dim
         self.image_size = image_size
@@ -124,10 +124,11 @@ class WVAE(nn.Module):
         self.dec_dist = dec_dist
         self.prior_dist = prior
         self.num_label = num_label
-        self.anneal_steps = anneal_steps
         self.alpha = alpha
         self.beta = beta
         self.gamma = gamma
+        self.reconstruction_loss = reconstruction_loss
+        self.use_mss = use_mss
 
         self.encoder = Encoder(latent_dim, enc_arch, enc_dist, enc_fc_size, enc_noise_dim)
         self.decoder = Decoder(latent_dim, conv_dim, image_size, dec_dist)
@@ -154,7 +155,7 @@ class WVAE(nn.Module):
         else:  # gaussian
             return self.decoder(z, mu=mean)
 
-    def traverse(self, eps, gap=3, n=10):
+    def traverse(self, eps, gap=5, n=10):
         dim = self.num_label if self.num_label is not None else self.latent_dim  # 如果self.num_label不是None，就把它赋值给dim，否则就把self.latent_dim赋值给dim
         sample = torch.zeros((n * dim, 3, self.image_size, self.image_size))  # 生成一个全零张量，并赋值给sample
         eps = eps.expand(n, self.latent_dim)  # 把eps扩展到(n, self.latent_dim)的维度，并赋值给eps
@@ -178,17 +179,18 @@ class WVAE(nn.Module):
         if x is not None and z is None:  # 如果x和z都不是None
             if self.enc_dist == 'gaussian':  # 如果self.enc_dist是'gaussian'
                 z_mu, z_logvar = self.encoder(x)  # 调用self.encoder，得到隐变量的均值和对数方差，并赋值给z_mu和z_logvar
+                z_fake = reparameterize(z_mu, torch.exp(0.5 * z_logvar))
             else:  # deterministic or implicit
                 z_fake = self.encoder(x)  # 调用self.encoder，得到隐变量，并赋值给z_fake
 
 
             if 'scm' in self.prior_dist:  # 如果self.prior_dist中包含'scm'
                 # in prior
-                label_z = self.prior(z_mu[:, :self.num_label])  # 调用self.prior，得到z的前self.num_label个维度经过因果层后的输出，并赋值给label_z
-                other_z = z_mu[:, self.num_label:]  # 得到z的剩余维度，并赋值给other_z
-                z_fake = torch.cat([label_z, other_z], dim=1)  # 把label_z和other_z在第二个维度上拼接起来，并赋值给z
+                label_z = self.prior(z_fake[:, :self.num_label])  # 调用self.prior，得到z的前self.num_label个维度经过因果层后的输出，并赋值给label_z
+                other_z = z_fake[:, self.num_label:]  # 得到z的剩余维度，并赋值给other_z
+                z = torch.cat([label_z, other_z], dim=1)  # 把label_z和other_z在第二个维度上拼接起来，并赋值给z
 
-            z = reparameterize(z_fake, (z_logvar / 2).exp())
+            # z = reparameterize(z_fake, (z_logvar / 2).exp())
 
             x_fake = self.decoder(z)  # 调用self.decoder，得到生成的图像，并赋值给x_fake
 
@@ -206,89 +208,55 @@ class WVAE(nn.Module):
 
         # Generation Mode
         elif x is None and z is not None:  # 如果x是None而z不是None
-            # if 'scm' in self.prior_dist:  # 如果self.prior_dist中包含'scm'
-            #     label_z = self.prior(z[:, :self.num_label])  # 调用self.prior，得到z的前self.num_label个维度经过因果层后的输出，并赋值给label_z
-            #     other_z = z[:, self.num_label:]  # 得到z的剩余维度，并赋值给other_z
-            #     z = torch.cat([label_z, other_z], dim=1)  # 把label_z和other_z在第二个维度上拼接起来，并赋值给z
+            if 'scm' in self.prior_dist:  # 如果self.prior_dist中包含'scm'
+                label_z = self.prior(z[:, :self.num_label])  # 调用self.prior，得到z的前self.num_label个维度经过因果层后的输出，并赋值给label_z
+                other_z = z[:, self.num_label:]  # 得到z的剩余维度，并赋值给other_z
+                z = torch.cat([label_z, other_z], dim=1)  # 把label_z和other_z在第二个维度上拼接起来，并赋值给z
             return self.decoder(z)  # 返回调用self.decoder后的结果
 
-    def log_density_gaussian(self, x, mu, logvar):
-        """
-        Computes the log pdf of the Gaussian with parameters mu and logvar at x
-        :param x: (Tensor) Point at whichGaussian PDF is to be evaluated
-        :param mu: (Tensor) Mean of the Gaussian distribution
-        :param logvar: (Tensor) Log variance of the Gaussian distribution
-        :return:
-        """
-        norm = - 0.5 * (math.log(2 * math.pi) + logvar)
-        log_density = norm - 0.5 * ((x - mu) ** 2 * torch.exp(-logvar))
-        return log_density
-
-    def loss_function(self,
-                      *args,
-                      **kwargs) -> dict:
-        """
-        Computes the VAE loss function.
-        KL(N(\mu, \sigma), N(0, 1)) = \log \frac{1}{\sigma} + \frac{\sigma^2 + \mu^2}{2} - \frac{1}{2}
-        :param args:
-        :param kwargs:
-        :return:
+    def _compute_log_gauss_density(self, z, mu, log_var):
+        """element-wise computation"""
+        return -0.5 * (
+                torch.log(torch.tensor([2 * np.pi]).to(z.device))
+                + log_var
+                + (z - mu) ** 2 * torch.exp(-log_var)
+        )
+    def _log_importance_weight_matrix(self, batch_size, dataset_size):
+        """Compute importance weigth matrix for MSS
+        Code from (https://github.com/rtqichen/beta-tcvae/blob/master/vae_quant.py)
         """
 
-        recons = args[0]
-        input = args[1]
-        mu = args[2]
-        log_var = args[3]
-        z = args[4]
+        N = dataset_size
+        M = batch_size - 1
+        strat_weight = (N - M) / (N * M)
+        W = torch.Tensor(batch_size, batch_size).fill_(1 / M)
+        W.view(-1)[:: M + 1] = 1 / N
+        W.view(-1)[1 :: M + 1] = strat_weight
+        W[M - 1, 0] = strat_weight
+        return W.log()
 
-        weight = 1  # kwargs['M_N']  # Account for the minibatch samples from the dataset
+    def loss_function(self, recon_x, x, mu, log_var, z):
 
-        recons_loss = F.mse_loss(recons, input, reduction='sum')
+        if self.reconstruction_loss == "mse":
+            recon_loss = (
+                    0.5
+                    * F.mse_loss(
+                recon_x.reshape(x.shape[0], -1),
+                x.reshape(x.shape[0], -1),
+                reduction="none",
+            ).sum(dim=-1)
+            )
 
-        log_q_zx = self.log_density_gaussian(z, mu, log_var).sum(dim=1)
+        elif self.reconstruction_loss == "bce":
 
-        zeros = torch.zeros_like(z)
-        log_p_z = self.log_density_gaussian(z, zeros, zeros).sum(dim=1)
+            recon_loss = F.binary_cross_entropy(
+                recon_x.reshape(x.shape[0], -1),
+                x.reshape(x.shape[0], -1),
+                reduction="none",
+            ).sum(dim=-1)
 
-        batch_size, latent_dim = z.shape
-        mat_log_q_z = self.log_density_gaussian(z.view(batch_size, 1, latent_dim),
-                                                mu.view(1, batch_size, latent_dim),
-                                                log_var.view(1, batch_size, latent_dim))
+        KLD = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp(), dim=-1)
 
-        # Reference
-        # [1] https://github.com/YannDubs/disentangling-vae/blob/535bbd2e9aeb5a200663a4f82f1d34e084c4ba8d/disvae/utils/math.py#L54
-        dataset_size = (1 / weight) * batch_size  # dataset size
-        strat_weight = (dataset_size - batch_size + 1) / (dataset_size * (batch_size - 1))
-        importance_weights = torch.Tensor(batch_size, batch_size).fill_(1 / (batch_size - 1)).to(input.device)
-        importance_weights.view(-1)[::batch_size] = 1 / dataset_size
-        importance_weights.view(-1)[1::batch_size] = strat_weight
-        importance_weights[batch_size - 2, 0] = strat_weight
-        log_importance_weights = importance_weights.log()
+        return (recon_loss + KLD).mean(dim=0), recon_loss.mean(dim=0), KLD.mean(dim=0)
 
-        mat_log_q_z += log_importance_weights.view(batch_size, batch_size, 1)
 
-        log_q_z = torch.logsumexp(mat_log_q_z.sum(2), dim=1, keepdim=False)
-        log_prod_q_z = torch.logsumexp(mat_log_q_z, dim=1, keepdim=False).sum(1)
-
-        mi_loss = (log_q_zx - log_q_z).mean()
-        tc_loss = (log_q_z - log_prod_q_z).mean()
-        kld_loss = (log_prod_q_z - log_p_z).mean()
-
-        # kld_loss = torch.mean(-0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim = 1), dim = 0)
-
-        if self.training:
-            self.num_iter += 1
-            anneal_rate = min(0 + 1 * self.num_iter / self.anneal_steps, 1)
-        else:
-            anneal_rate = 1.
-
-        loss = recons_loss / batch_size + \
-               self.alpha * mi_loss + \
-               weight * (self.beta * tc_loss +
-                         anneal_rate * self.gamma * kld_loss)
-
-        return {'loss': loss,
-                'Reconstruction_Loss': recons_loss,
-                'KLD': kld_loss,
-                'TC_Loss': tc_loss,
-                'MI_Loss': mi_loss}
