@@ -36,6 +36,7 @@ utils.make_folder(save_dir)
 utils.write_config_to_file(args, save_dir)
 
 celoss = torch.nn.BCEWithLogitsLoss()
+# adversarial_loss = torch.nn.BCELoss()
 
 # 得到数据集
 train_loader, test_loader, train_set = utils.make_dataloader(args)
@@ -70,7 +71,11 @@ else:
 print('Build models...')
 model = WVAE(args.latent_dim, args.g_conv_dim, args.image_size,
              args.enc_dist, args.enc_arch, args.enc_fc_size, args.enc_noise_dim, args.dec_dist,
-             args.prior, num_label, A, args.alpha, args.beta, args.gamma, args.reconstruction_loss, args.use_mss)
+             args.prior, num_label, A, args.reconstruction_loss)
+
+discriminator = BigJointDiscriminator(args.latent_dim, args.d_conv_dim, args.image_size,
+                                          args.dis_fc_size)
+
 
 
 A_optimizer = None
@@ -91,8 +96,11 @@ encoder_optimizer = optim.Adam(enc_param, lr=args.lr_e,
 decoder_optimizer = optim.Adam(dec_param, lr=args.lr_g,
                                betas=(args.beta1, args.beta2))  # 创建一个Adam优化器，用来优化dec_param中的参数，并赋值给decoder_optimizer
 
+D_optimizer = optim.Adam(discriminator.parameters(), lr=args.lr_d, betas=(args.beta1, args.beta2)) # 创建一个Adam优化器，用来优化discriminator中的参数，并赋值给D_optimizer
+
 
 model = nn.DataParallel(model.to(device))
+discriminator = nn.DataParallel(discriminator.to(device))
 
 
 def test(epoch, i, model, test_data, save_dir, fixed_noise, fixed_zeros):
@@ -107,7 +115,7 @@ def test(epoch, i, model, test_data, save_dir, fixed_noise, fixed_zeros):
         save_image(recons, save_dir + 'recon_' + str(epoch) + '_' + str(i) + '.png', nrow=args.nrow,normalize=True, scale_each=True)  # 保存recons到指定的路径，使用args.nrow指定每行的图片数量，使用normalize和scale_each进行归一化
 
         # Generation
-        sample = model(z=fixed_noise).cpu()  # 调用模型，得到生成的图像，并转移到cpu上，并赋值给sample
+        sample = model(z=fixed_noise, gen=True).cpu()  # 调用模型，得到生成的图像，并转移到cpu上，并赋值给sample
         save_image(sample, save_dir + 'gen_' + str(epoch) + '_' + str(i) + '.png', normalize=True,scale_each=True)  # 保存sample到指定的路径，使用normalize和scale_each进行归一化
 
         # Traversal (given a fixed traversal range)
@@ -153,18 +161,65 @@ for epoch in range(args.start_epoch, args.start_epoch + args.n_epochs):
             label = label.to(device)  # 把label转移到device上，并赋值给label
 
 
+        for _ in range(args.d_steps_per_iter): # 循环args.d_steps_per_iter次
+            discriminator.zero_grad() # 把判别器的梯度清零
+
+            # Sample z from prior p_z
+            if args.prior == 'uniform': # 如果先验分布是均匀分布
+                z = torch.rand(x.size(0), args.latent_dim, device=x.device) * 2 - 1 # 生成一个服从[-1,1]区间的随机张量，并赋值给z
+            else: # 否则
+                z = torch.randn(x.size(0), args.latent_dim, device=x.device) # 生成一个服从标准正态分布的随机张量，并赋值给z
+
+            # Get inferred latent z = E(x) and generated image x = G(z)
+            if 'scm' in args.prior: # 如果args.prior中包含'scm'
+                z_fake, z_mu, z_logvar, x_fake, z = model(None, z) # 调用模型，得到编码后的隐变量z_fake，生成后的图像x_fake，真实的隐变量z和其他输出，并赋值给相应的变量
+            else: # 否则
+                z_fake, z_mu, z_logvar, x_fake, z = model(None, z) # 调用模型，得到编码后的隐变量z_fake，生成后的图像x_fake和其他输出，并赋值给相应的变量
+
+            # Compute D loss
+            x_score = discriminator(x) # 调用判别器，得到编码后的隐变量z_fake对应的分数，并赋值给encoder_score
+            x_fake_score = discriminator(x_fake.detach()) # 调用判别器，得到生成后的图像x_fake对应的分数，并赋值给decoder_score
+            one = torch.full((x.size(0),), 1., device=x.device)
+            zero = torch.full((x.size(0),), 0., device=x.device)
+
+            loss_d_one = celoss(x_score, one)
+            loss_d_two = celoss(x_fake_score, zero)
+
+            z_fake_s = discriminator(x_fake.detach(), z_fake.detach())
+            z_s = discriminator(x_fake.detach(), z)
+            recon_loss = F.softplus(z_s).mean() + F.softplus(-z_fake_s).mean()
+            # recon_loss = celoss(z_fake_s, z_s)
+
+            loss_d = loss_d_one + loss_d_two + recon_loss
+
+            # encoder_score = discriminator(x_fake.detach(), z_fake.detach())
+            # decoder_score = discriminator(x_fake.detach(), z.detach())
+            # loss_d_three = F.softplus(decoder_score).mean() + F.softplus(-encoder_score).mean()
+
+            loss_d.backward()
+
+            D_optimizer.step() # 调用D_optimizer，更新判别器的参数
+
+
+
         # train model
         # model.zero_grad()
         for _ in range(args.g_steps_per_iter):
 
-            if 'scm' in args.prior:
-                z_fake, x_fake, z, z_fake_mean, z_fake_logvar = model(x)
-            else:
-                z_fake, x_fake, z_fake_mean, z_fake_logvar = model(x)
+            if args.prior == 'uniform':  # 如果先验分布是均匀分布
+                z = torch.rand(x.size(0), args.latent_dim, device=x.device) * 2 - 1  # 生成一个服从[-1,1]区间的随机张量，并赋值给z
+            else:  # 否则
+                z = torch.randn(x.size(0), args.latent_dim, device=x.device)  # 生成一个服从标准正态分布的随机张量，并赋值给z
 
+                # Get inferred latent z = E(x) and generated image x = G(z)
+            if 'scm' in args.prior:  # 如果args.prior中包含'scm'
+                z_fake, z_mu, z_logvar, x_fake, z = model(None, z)  # 调用模型，得到编码后的隐变量z_fake，生成后的图像x_fake，真实的隐变量z和其他输出，并赋值给相应的变量
+            else:  # 否则
+                z_fake, z_mu, z_logvar, x_fake, z = model(None, z)  # 调用模型，得到编码后的隐变量z_fake，生成后的图像x_fake和其他输出，并赋值给相应的变量
 
+            model.zero_grad()
             if sup_flag.sum() > 0:  # 如果sup_flag中为True的元素个数大于0，说明有有效的标签
-                label_z = z_fake_mean[sup_flag, :num_labels]  # 用sup_flag筛选出有效的隐变量，并用num_labels选择需要的列，并赋值给label_z
+                label_z = z_mu[sup_flag, :num_labels]  # 用sup_flag筛选出有效的隐变量，并用num_labels选择需要的列，并赋值给label_z
                 if 'pendulum' or 'tree' in args.dataset:  # 如果args.dataset中包含'pendulum'
                     if args.sup_type == 'ce':  # 如果args.sup_type是'ce'
                         # CE loss
@@ -177,24 +232,36 @@ for epoch in range(args.start_epoch, args.start_epoch + args.n_epochs):
             else:  # 否则
                 sup_loss = torch.zeros([1], device=device)  # 生成一个全零张量，并赋值给sup_loss
 
-            loss, recon_loss, kld = model.module.loss_function(x_fake, x, z_fake_mean, z_fake_logvar, z_fake)
+            # KLD = -0.5 * torch.sum(1 + z_logvar - z_mu.pow(2) - z_logvar.exp(), dim=-1)  # 调用判别器，得到编码后的隐变量z_fake对应的分数，并赋值给encoder_score
 
-            # model.module.zero_grad()
-            # loss_encoder.backward(retain_graph=True)  # 对loss_encoder进行反向传播，计算梯度
+            z_fake_s = discriminator(x_fake, z_fake)
+            # r_encoder = torch.exp(z_fake_s.detach())  # 对decoder_score进行detach操作，然后取指数，并赋值给r_decoder
+            # s_encoder = r_encoder.clamp(0.5, 2)  # 对r_decoder进行截断操作，使其范围在0.5到2之间，并赋值给s_decoder
+            # z_fake_s_s = (s_encoder * z_fake_s).mean()  # 计算解码器的损失函数，使用s_decoder和decoder_score的乘积的负平均值，并赋值给loss_decoder
+            # loss_encoder = encoder_score.mean()  # 计算encoder_score的平均值，并赋值给loss_encoder
+            # loss, recon_loss, kld = model.module.loss_function(x_fake, x, z_fake_mean, z_fake_logvar, z_fake)
+
+            loss_encoder = sup_loss * args.sup_coef + z_fake_s.mean()
+
+            # decoder_score = discriminator(x_fake, z)  # 调用判别器，得到生成后的图像x_fake对应的分数，并赋值给decoder_score
+            # with scaling clipping for stabilization
+            # r_decoder = torch.exp(decoder_score.detach())  # 对decoder_score进行detach操作，然后取指数，并赋值给r_decoder
+            # s_decoder = r_decoder.clamp(0.5, 2)  # 对r_decoder进行截断操作，使其范围在0.5到2之间，并赋值给s_decoder
             #
-            # encoder_optimizer.step()  # 调用encoder_optimizer，更新编码器的参数
-            # if 'scm' in args.prior:  # 如果args.prior中包含'scm'
-            #     prior_optimizer.step()  # 调用prior_optimizer，更新先验网络的参数
-            loss = loss + sup_loss
+            # loss_decoder = -(s_decoder * decoder_score).mean()  # 计算解码器的损失函数，使用s_decoder和decoder_score的乘积的负平均值，并赋值给loss_decoder
+            z_s = discriminator(x_fake, z)
+            r_encoder = torch.exp(z_s.detach())  # 对decoder_score进行detach操作，然后取指数，并赋值给r_decoder
+            s_encoder = r_encoder.clamp(0.5, 2)  # 对r_decoder进行截断操作，使其范围在0.5到2之间，并赋值给s_decoder
+            z_s_s = -(s_encoder * z_s).mean()
 
-            model.module.zero_grad()
-            # if epoch == 1:
-            #     if batch_idx != 0:
-            #         model.module.prior.set_zero_grad()
-            # else:
-            #     model.module.prior.set_zero_grad()
+            loss_decoder = celoss(discriminator(x_fake), one) + z_s_s
+
+
+            loss = loss_encoder + loss_decoder
+
 
             loss.backward()  # 对loss_decoder进行反向传播，计算梯度
+
             encoder_optimizer.step()
             decoder_optimizer.step()  # 调用decoder_optimizer，更新解码器的参数
             if 'scm' in args.prior:  # 如果args.prior中包含'scm'
@@ -221,9 +288,9 @@ for epoch in range(args.start_epoch, args.start_epoch + args.n_epochs):
 
             if batch_idx == 0 or (batch_idx + 1) % args.print_every == 0:
                 log = (
-                    'Train Epoch: {} ({:.0f}%)\t, kl_loss: {:.4f}, rec_loss:{:.4f}, Sup loss: {:.4f}, loss: {:.4f}'.format(
+                    'Train Epoch: {} ({:.0f}%)\t, loss_d: {:.4f}, loss_encoder:{:.4f}, loss_decoder:{:.4f}, Sup loss: {:.4f}, loss: {:.4f}'.format(
                         epoch, 100. * batch_idx / len(train_loader),
-                        kld.item(), recon_loss.item(), sup_loss.item(), loss.item()))
+                        loss_d.item(), loss_encoder.item(), loss_decoder.item(), sup_loss.item(), loss.item()))
                 print(log)
                 log_file.write(log + '\n')
                 log_file.flush()
@@ -239,7 +306,7 @@ for epoch in range(args.start_epoch, args.start_epoch + args.n_epochs):
                 heatmap = fig.get_figure()
                 heatmap.savefig(fig_path, dpi=400)
 
-            if (epoch % 100 == 0) and batch_idx == len(train_loader) - 1:
+            if (epoch % 10 == 0) and batch_idx == len(train_loader) - 1:
                 torch.save(model.state_dict(), save_dir + "model_" + str(epoch) + ".pth")
 
 

@@ -116,7 +116,7 @@ class WVAE(nn.Module):
 
     def __init__(self, latent_dim=64, conv_dim=32, image_size=64,
                  enc_dist='gaussian', enc_arch='resnet', enc_fc_size=2048, enc_noise_dim=128, dec_dist='implicit',
-                 prior='gaussian', num_label=None, A=None, alpha=1, beta=6, gamma=1, reconstruction_loss='mse', use_mss = True):
+                 prior='gaussian', num_label=None, A=None, reconstruction_loss='mse'):
         super().__init__()
         self.latent_dim = latent_dim
         self.image_size = image_size
@@ -124,11 +124,8 @@ class WVAE(nn.Module):
         self.dec_dist = dec_dist
         self.prior_dist = prior
         self.num_label = num_label
-        self.alpha = alpha
-        self.beta = beta
-        self.gamma = gamma
         self.reconstruction_loss = reconstruction_loss
-        self.use_mss = use_mss
+
 
         self.encoder = Encoder(latent_dim, enc_arch, enc_dist, enc_fc_size, enc_noise_dim)
         self.decoder = Decoder(latent_dim, conv_dim, image_size, dec_dist)
@@ -173,7 +170,7 @@ class WVAE(nn.Module):
                 sample[n * idx:(n * (idx + 1)), :, :, :] = self.decoder(z_new)  # 调用self.decoder，得到生成的图像，并赋值给sample的相应位置
         return sample  # 返回sample
 
-    def forward(self, x=None, z=None, recon=False, infer_mean=True):
+    def forward(self, x=None, z=None, recon=False, gen=False, infer_mean=True):
         # recon_mean is used for gaussian decoder which we do not use here.
         # Training Mode
         if x is not None and z is None:  # 如果x和z都不是None
@@ -184,25 +181,25 @@ class WVAE(nn.Module):
                 z_fake = self.encoder(x)  # 调用self.encoder，得到隐变量，并赋值给z_fake
 
 
-            if 'scm' in self.prior_dist:  # 如果self.prior_dist中包含'scm'
-                # in prior
-                label_z = self.prior(z_fake[:, :self.num_label])  # 调用self.prior，得到z的前self.num_label个维度经过因果层后的输出，并赋值给label_z
-                other_z = z_fake[:, self.num_label:]  # 得到z的剩余维度，并赋值给other_z
-                z = torch.cat([label_z, other_z], dim=1)  # 把label_z和other_z在第二个维度上拼接起来，并赋值给z
+            # if 'scm' in self.prior_dist:  # 如果self.prior_dist中包含'scm'
+            #     # in prior
+            #     label_z = self.prior(z_fake[:, :self.num_label])  # 调用self.prior，得到z的前self.num_label个维度经过因果层后的输出，并赋值给label_z
+            #     other_z = z_fake[:, self.num_label:]  # 得到z的剩余维度，并赋值给other_z
+            #     z = torch.cat([label_z, other_z], dim=1)  # 把label_z和other_z在第二个维度上拼接起来，并赋值给z
 
             # z = reparameterize(z_fake, (z_logvar / 2).exp())
 
-            x_fake = self.decoder(z)  # 调用self.decoder，得到生成的图像，并赋值给x_fake
+            x_fake = self.decoder(z_fake)  # 调用self.decoder，得到生成的图像，并赋值给x_fake
 
             if recon == True:
                 return x_fake
 
-            if 'scm' in self.prior_dist:  # 如果self.prior_dist中包含'scm'
-                if self.enc_dist == 'gaussian' and infer_mean:  # 如果self.enc_dist是'gaussian'并且infer_mean为真
-                    return z_fake, x_fake, z, z_mu, z_logvar  # 返回z_fake, x_fake, z, z_mu
-                else:  # 否则
-                    return z_fake, x_fake, z, None, z_logvar  # 返回z_fake, x_fake, z, None
-            return z_fake, x_fake, z_mu, z_logvar  # 返回z_fake, x_fake, z_mu
+            # if 'scm' in self.prior_dist:  # 如果self.prior_dist中包含'scm'
+            #     if self.enc_dist == 'gaussian' and infer_mean:  # 如果self.enc_dist是'gaussian'并且infer_mean为真
+            #         return z_fake, x_fake, z, z_mu, z_logvar  # 返回z_fake, x_fake, z, z_mu
+            #     else:  # 否则
+            #         return z_fake, x_fake, z, None, z_logvar  # 返回z_fake, x_fake, z, None
+            # return z_fake, x_fake, z_mu, z_logvar  # 返回z_fake, x_fake, z_mu
 
 
 
@@ -212,7 +209,19 @@ class WVAE(nn.Module):
                 label_z = self.prior(z[:, :self.num_label])  # 调用self.prior，得到z的前self.num_label个维度经过因果层后的输出，并赋值给label_z
                 other_z = z[:, self.num_label:]  # 得到z的剩余维度，并赋值给other_z
                 z = torch.cat([label_z, other_z], dim=1)  # 把label_z和other_z在第二个维度上拼接起来，并赋值给z
-            return self.decoder(z)  # 返回调用self.decoder后的结果
+
+            x_fake = self.decoder(z)
+
+            if gen == True:
+                return x_fake
+
+            if self.enc_dist == 'gaussian':  # 如果self.enc_dist是'gaussian'
+                z_mu, z_logvar = self.encoder(x_fake)  # 调用self.encoder，得到隐变量的均值和对数方差，并赋值给z_mu和z_logvar
+                z_fake = reparameterize(z_mu, torch.exp(0.5 * z_logvar))
+            else:  # deterministic or implicit
+                z_fake = self.encoder(x_fake)  # 调用self.encoder，得到隐变量，并赋值给z_fake
+
+            return z_fake, z_mu, z_logvar, x_fake, z  # 返回调用self.decoder后的结果
 
     def _compute_log_gauss_density(self, z, mu, log_var):
         """element-wise computation"""
@@ -259,4 +268,34 @@ class WVAE(nn.Module):
 
         return (recon_loss + KLD).mean(dim=0), recon_loss.mean(dim=0), KLD.mean(dim=0)
 
+
+class BigJointDiscriminator(nn.Module):
+    r'''Big joint discriminator based on SAGAN
+
+    Args:
+        latent_dim: latent dimension
+        conv_dim: base number of channels
+        image_size: image resolution
+        fc_size: number of nodes in each fc layers
+    '''
+    def __init__(self, latent_dim=64, conv_dim=32, image_size=64, fc_size=1024):
+        super().__init__()
+        self.discriminator = Discriminator(conv_dim, image_size, in_channels=3, out_feature=True) # 创建一个判别器，并把它赋值给self.discriminator
+        self.discriminator_z = Discriminator_MLP(latent_dim, fc_size) # 创建一个多层感知器的判别器，并把它赋值给self.discriminator_z
+        self.discriminator_j = Discriminator_MLP(conv_dim * 16 + fc_size, fc_size) # 创建一个多层感知器的判别器，并把它赋值给self.discriminator_j
+
+    def forward(self, x=None, z=None):
+        if x is not None and z is not None:
+            sx, feature_x = self.discriminator(x)
+            sz, feature_z = self.discriminator_z(z)
+            sxz, _ = self.discriminator_j(torch.cat((feature_x, feature_z), dim=1))
+            return (sx + sz + sxz) / 3
+        elif x is not None and z is None:
+            sx, feature_x = self.discriminator(x)
+            # sx_f, _ = self.discriminator_j(feature_x)
+            return sx
+        elif x is None and z is not None:
+            sz, feature_z = self.discriminator_z(z)
+            # sx_f, _ = self.discriminator_j(feature_x)
+            return sz
 

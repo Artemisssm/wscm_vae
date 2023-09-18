@@ -393,6 +393,7 @@ class Discriminator_MLP(nn.Module):
             f = self.block3(f)
         out = self.fc4(f)
 
+
         if self.out_feature:
             return out, f
         else:
