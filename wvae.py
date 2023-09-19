@@ -105,11 +105,10 @@ class Decoder(nn.Module):
 # print(x)
 
 
-def reparameterize(mu, sigma):
-    # assert mu.shape == sigma.shape
-    # eps = mu.new(mu.shape).normal_(0, std)
-    eps = torch.randn_like(sigma)
-    return mu + eps * sigma
+def reparameterize(mu, sigma, std=1):
+    assert mu.shape == sigma.shape
+    eps = mu.new(mu.shape).normal_(0, std)
+    return mu + sigma * eps
 
 
 class WVAE(nn.Module):
@@ -176,7 +175,7 @@ class WVAE(nn.Module):
         if x is not None and z is None:  # 如果x和z都不是None
             if self.enc_dist == 'gaussian':  # 如果self.enc_dist是'gaussian'
                 z_mu, z_logvar = self.encoder(x)  # 调用self.encoder，得到隐变量的均值和对数方差，并赋值给z_mu和z_logvar
-                z_fake = reparameterize(z_mu, torch.exp(0.5 * z_logvar))
+                z_fake = reparameterize(z_mu, (z_logvar / 2).exp())
             else:  # deterministic or implicit
                 z_fake = self.encoder(x)  # 调用self.encoder，得到隐变量，并赋值给z_fake
 

@@ -185,9 +185,9 @@ for epoch in range(args.start_epoch, args.start_epoch + args.n_epochs):
             loss_d_one = celoss(x_score, one)
             loss_d_two = celoss(x_fake_score, zero)
 
-            z_fake_s = discriminator(x_fake.detach(), z_fake.detach())
-            z_s = discriminator(x_fake.detach(), z)
-            recon_loss = F.softplus(z_s).mean() + F.softplus(-z_fake_s).mean()
+            z_fake_s = discriminator(None, z_fake.detach())
+            z_s = discriminator(None, z)
+            recon_loss = F.softplus(z_fake_s).mean() + F.softplus(-z_s).mean()
             # recon_loss = celoss(z_fake_s, z_s)
 
             loss_d = loss_d_one + loss_d_two + recon_loss
@@ -234,14 +234,14 @@ for epoch in range(args.start_epoch, args.start_epoch + args.n_epochs):
 
             # KLD = -0.5 * torch.sum(1 + z_logvar - z_mu.pow(2) - z_logvar.exp(), dim=-1)  # 调用判别器，得到编码后的隐变量z_fake对应的分数，并赋值给encoder_score
 
-            z_fake_s = discriminator(x_fake, z_fake)
-            # r_encoder = torch.exp(z_fake_s.detach())  # 对decoder_score进行detach操作，然后取指数，并赋值给r_decoder
-            # s_encoder = r_encoder.clamp(0.5, 2)  # 对r_decoder进行截断操作，使其范围在0.5到2之间，并赋值给s_decoder
-            # z_fake_s_s = (s_encoder * z_fake_s).mean()  # 计算解码器的损失函数，使用s_decoder和decoder_score的乘积的负平均值，并赋值给loss_decoder
+            z_fake_s = discriminator(None, z_fake)
+            r_encoder = torch.exp(z_fake_s.detach())  # 对decoder_score进行detach操作，然后取指数，并赋值给r_decoder
+            s_encoder = r_encoder.clamp(0.5, 2)  # 对r_decoder进行截断操作，使其范围在0.5到2之间，并赋值给s_decoder
+            z_fake_s_s = -(s_encoder * z_fake_s).mean()  # 计算解码器的损失函数，使用s_decoder和decoder_score的乘积的负平均值，并赋值给loss_decoder
             # loss_encoder = encoder_score.mean()  # 计算encoder_score的平均值，并赋值给loss_encoder
             # loss, recon_loss, kld = model.module.loss_function(x_fake, x, z_fake_mean, z_fake_logvar, z_fake)
 
-            loss_encoder = sup_loss * args.sup_coef + z_fake_s.mean()
+            loss_encoder = sup_loss * args.sup_coef + z_fake_s_s
 
             # decoder_score = discriminator(x_fake, z)  # 调用判别器，得到生成后的图像x_fake对应的分数，并赋值给decoder_score
             # with scaling clipping for stabilization

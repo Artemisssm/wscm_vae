@@ -5,10 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="ac265a80-681a-4fe5-b76e-1640d03e64db" name="Changes" comment="基础">
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/config.py" beforeDir="false" afterPath="$PROJECT_DIR$/config.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sagan.py" beforeDir="false" afterPath="$PROJECT_DIR$/sagan.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/train.py" beforeDir="false" afterPath="$PROJECT_DIR$/train.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/wvae.py" beforeDir="false" afterPath="$PROJECT_DIR$/wvae.py" afterDir="false" />
     </list>
@@ -65,7 +63,7 @@
     &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
 }</component>
-  <component name="RdControllerToolWindowsLayoutState" isNewUi="true">
+  <component name="RdControllerToolWindowsLayoutState" isNewUi="false">
     <layout>
       <window_info id="Space Code Reviews" />
       <window_info id="Bookmarks" side_tool="true" />
@@ -73,7 +71,7 @@
       <window_info id="Commit_Guest" />
       <window_info id="Pull Requests" />
       <window_info id="Learn" />
-      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.16171876" />
+      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.1783854" />
       <window_info id="Commit" order="1" weight="0.25" />
       <window_info id="Structure" order="2" side_tool="true" weight="0.25" />
       <window_info anchor="bottom" id="Database Changes" />
@@ -82,13 +80,13 @@
       <window_info anchor="bottom" id="TODO" />
       <window_info anchor="bottom" id="File Transfer" />
       <window_info anchor="bottom" id="Python Console" />
-      <window_info anchor="bottom" id="Run" weight="0.37742248" />
+      <window_info anchor="bottom" id="Run" weight="0.27180234" />
       <window_info anchor="bottom" id="Find" show_stripe_button="false" weight="0.32994187" />
-      <window_info active="true" anchor="bottom" id="Version Control" order="0" visible="true" weight="0.37742248" />
+      <window_info anchor="bottom" id="Version Control" order="0" weight="0.32994187" />
       <window_info anchor="bottom" id="Problems View" order="1" weight="0.32994187" />
       <window_info anchor="bottom" id="Terminal" order="2" weight="0.37742248" />
       <window_info anchor="bottom" id="Services" order="3" />
-      <window_info anchor="bottom" id="Debug" order="4" weight="0.3890504" />
+      <window_info anchor="bottom" id="Debug" order="4" weight="0.32994187" />
       <window_info anchor="right" id="Endpoints" />
       <window_info anchor="right" id="SciView" />
       <window_info anchor="right" id="Meet New UI" side_tool="true" />
@@ -219,6 +217,9 @@
       <workItem from="1694935165756" duration="18563000" />
       <workItem from="1694999461983" duration="21415000" />
       <workItem from="1695035083459" duration="6263000" />
+      <workItem from="1695095495336" duration="111000" />
+      <workItem from="1695096834723" duration="1241000" />
+      <workItem from="1695112226723" duration="507000" />
     </task>
     <task id="LOCAL-00001" summary="one-resnet">
       <option name="closed" value="true" />
@@ -324,6 +325,6 @@
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/wscm_vae$shiyan.coverage" NAME="shiyan Coverage Results" MODIFIED="1693838773791" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/wscm_vae$wvae.coverage" NAME="wvae Coverage Results" MODIFIED="1693712513116" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/wscm_vae$train.coverage" NAME="train Coverage Results" MODIFIED="1695038281614" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/wscm_vae$train.coverage" NAME="train Coverage Results" MODIFIED="1695086464654" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>
