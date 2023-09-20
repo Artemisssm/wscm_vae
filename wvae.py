@@ -261,14 +261,14 @@ class WVAE(nn.Module):
         W[M - 1, 0] = strat_weight
         return W.log()
 
-    def loss_function(self, recon_x, x, mu, log_var, batch_size):
+    def loss_function(self, recon_x, x, mu, log_var, batch_size, discriminator):
 
         if self.reconstruction_loss == "mse":
             recon_loss = (
                     0.5
                     * F.mse_loss(
-                recon_x.reshape(x.shape[0], -1),
-                x.reshape(x.shape[0], -1),
+                discriminator(recon_x)[1],
+                discriminator(x)[1],
                 reduction="none",
             ).sum(dim=-1)
             ) / batch_size
@@ -310,7 +310,7 @@ class BigJointDiscriminator(nn.Module):
         elif x is not None and z is None:
             sx, feature_x = self.discriminator(x)
             # sx_f, _ = self.discriminator_j(feature_x)
-            return sx
+            return sx, feature_x
         elif x is None and z is not None:
             sz, feature_z = self.discriminator_z(z)
             # sx_f, _ = self.discriminator_j(feature_x)

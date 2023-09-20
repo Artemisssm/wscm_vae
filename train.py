@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 
 import seaborn as sns
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 device = torch.device('cuda')
 args = get_config()
 
@@ -177,8 +177,8 @@ for epoch in range(args.start_epoch, args.start_epoch + args.n_epochs):
                 x_fake, z_fake, z_mu, z_logvar = model(x) # 调用模型，得到编码后的隐变量z_fake，生成后的图像x_fake和其他输出，并赋值给相应的变量
 
             # Compute D loss
-            x_score = discriminator(x) # 调用判别器，得到编码后的隐变量z_fake对应的分数，并赋值给encoder_score
-            x_fake_score = discriminator(x_fake.detach()) # 调用判别器，得到生成后的图像x_fake对应的分数，并赋值给decoder_score
+            x_score, x_feature = discriminator(x) # 调用判别器，得到编码后的隐变量z_fake对应的分数，并赋值给encoder_score
+            x_fake_score, x_fake_feature = discriminator(x_fake.detach()) # 调用判别器，得到生成后的图像x_fake对应的分数，并赋值给decoder_score
 
             one = torch.full((x.size(0),), 1., device=x.device)
             zero = torch.full((x.size(0),), 0., device=x.device)
@@ -220,7 +220,7 @@ for epoch in range(args.start_epoch, args.start_epoch + args.n_epochs):
 
             model.zero_grad()
             if sup_flag.sum() > 0:  # 如果sup_flag中为True的元素个数大于0，说明有有效的标签
-                label_z = z_mu[sup_flag, :num_labels]  # 用sup_flag筛选出有效的隐变量，并用num_labels选择需要的列，并赋值给label_z
+                label_z = z[sup_flag, :num_labels]  # 用sup_flag筛选出有效的隐变量，并用num_labels选择需要的列，并赋值给label_z
                 if 'pendulum' or 'tree' in args.dataset:  # 如果args.dataset中包含'pendulum'
                     if args.sup_type == 'ce':  # 如果args.sup_type是'ce'
                         # CE loss
@@ -236,8 +236,9 @@ for epoch in range(args.start_epoch, args.start_epoch + args.n_epochs):
             # KLD = -0.5 * torch.sum(1 + z_logvar - z_mu.pow(2) - z_logvar.exp(), dim=-1)  # 调用判别器，得到编码后的隐变量z_fake对应的分数，并赋值给encoder_score
 
             # z_fake_s = discriminator(x_fake, z_fake)
-            loss_r, recon_loss, KLD = model.module.loss_function(x_fake, x, z_mu, z_logvar, x.shape[0])
-            loss = loss_r + celoss(discriminator(x_fake), one) + sup_loss * args.sup_coef
+            loss_r, recon_loss, KLD = model.module.loss_function(x_fake, x, z_mu, z_logvar, x.shape[0], discriminator)
+
+            loss = loss_r + celoss(discriminator(x_fake)[0], one) + sup_loss * args.sup_coef
             # r_encoder = torch.exp(z_fake_s.detach())  # 对decoder_score进行detach操作，然后取指数，并赋值给r_decoder
             # s_encoder = r_encoder.clamp(0.5, 2)  # 对r_decoder进行截断操作，使其范围在0.5到2之间，并赋值给s_decoder
             # z_fake_s_s = (s_encoder * z_fake_s).mean()  # 计算解码器的损失函数，使用s_decoder和decoder_score的乘积的负平均值，并赋值给loss_decoder
