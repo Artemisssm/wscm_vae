@@ -115,7 +115,7 @@ class WVAE(nn.Module):
 
     def __init__(self, latent_dim=64, conv_dim=32, image_size=64,
                  enc_dist='gaussian', enc_arch='resnet', enc_fc_size=2048, enc_noise_dim=128, dec_dist='implicit',
-                 prior='gaussian', num_label=None, A=None, reconstruction_loss='mse'):
+                 prior='gaussian', num_label=None, A=None, reconstruction_loss='mse', use_mss=True, alpha=1, beta=4, gamma=1):
         super().__init__()
         self.latent_dim = latent_dim
         self.image_size = image_size
@@ -124,6 +124,11 @@ class WVAE(nn.Module):
         self.prior_dist = prior
         self.num_label = num_label
         self.reconstruction_loss = reconstruction_loss
+        self.use_mss = use_mss
+        self.alpha = alpha
+        self.beta = beta
+        self.gamma = gamma
+
 
 
         self.encoder = Encoder(latent_dim, enc_arch, enc_dist, enc_fc_size, enc_noise_dim)
@@ -184,16 +189,16 @@ class WVAE(nn.Module):
                 # in prior
                 label_z = self.prior(z_fake[:, :self.num_label])  # 调用self.prior，得到z的前self.num_label个维度经过因果层后的输出，并赋值给label_z
                 other_z = z_fake[:, self.num_label:]  # 得到z的剩余维度，并赋值给other_z
-                z_fake = torch.cat([label_z, other_z], dim=1)  # 把label_z和other_z在第二个维度上拼接起来，并赋值给z
+                z = torch.cat([label_z, other_z], dim=1)  # 把label_z和other_z在第二个维度上拼接起来，并赋值给z
 
             # z = reparameterize(z_fake, (z_logvar / 2).exp())
 
-            x_fake = self.decoder(z_fake)  # 调用self.decoder，得到生成的图像，并赋值给x_fake
+            x_fake = self.decoder(z)  # 调用self.decoder，得到生成的图像，并赋值给x_fake
 
             if recon is True:
                 return x_fake
 
-            return x_fake, z_fake, z_mu, z_logvar
+            return x_fake, z,  z_fake, z_mu, z_logvar
 
             # if recon == True:
             #     return x_fake
@@ -261,9 +266,10 @@ class WVAE(nn.Module):
         W[M - 1, 0] = strat_weight
         return W.log()
 
-    def loss_function(self, recon_x, x, mu, log_var, batch_size, discriminator):
+    def loss_function(self, recon_x, x, mu, log_var, z, dataset_size, discriminator):
 
         if self.reconstruction_loss == "mse":
+
             recon_loss = (
                     0.5
                     * F.mse_loss(
@@ -271,9 +277,9 @@ class WVAE(nn.Module):
                 discriminator(x)[1],
                 reduction="none",
             ).sum(dim=-1)
-            ) / batch_size
+            )
 
-        elif self.reconstruction_loss == "bce":
+        elif self.model_config.reconstruction_loss == "bce":
 
             recon_loss = F.binary_cross_entropy(
                 recon_x.reshape(x.shape[0], -1),
@@ -281,9 +287,69 @@ class WVAE(nn.Module):
                 reduction="none",
             ).sum(dim=-1)
 
-        KLD = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp(), dim=-1)
+        log_q_z_given_x = self._compute_log_gauss_density(z, mu, log_var).sum(
+            dim=-1
+        )  # [B]
 
-        return (recon_loss + KLD).mean(dim=0), recon_loss.mean(dim=0), KLD.mean(dim=0)
+        log_prior = self._compute_log_gauss_density(
+            z, torch.zeros_like(z), torch.zeros_like(z)
+        ).sum(
+            dim=-1
+        )  # [B]
+
+        log_q_batch_perm = self._compute_log_gauss_density(
+            z.reshape(z.shape[0], 1, -1),
+            mu.reshape(1, z.shape[0], -1),
+            log_var.reshape(1, z.shape[0], -1),
+        )  # [B x B x Latent_dim]
+
+        if self.use_mss:
+            logiw_mat = self._log_importance_weight_matrix(z.shape[0], dataset_size).to(
+                z.device
+            )
+            log_q_z = torch.logsumexp(
+                logiw_mat + log_q_batch_perm.sum(dim=-1), dim=-1
+            )  # MMS [B]
+            log_prod_q_z = (
+                torch.logsumexp(
+                    logiw_mat.reshape(z.shape[0], z.shape[0], -1) + log_q_batch_perm,
+                    dim=1,
+                )
+            ).sum(
+                dim=-1
+            )  # MMS [B]
+
+        else:
+            log_q_z = torch.logsumexp(log_q_batch_perm.sum(dim=-1), dim=-1) - torch.log(
+                torch.tensor([z.shape[0] * dataset_size]).to(z.device)
+            )  # MWS [B]
+            log_prod_q_z = (
+                    torch.logsumexp(log_q_batch_perm, dim=1)
+                    - torch.log(torch.tensor([z.shape[0] * dataset_size]).to(z.device))
+            ).sum(
+                dim=-1
+            )  # MWS [B]
+
+        mutual_info_loss = log_q_z_given_x - log_q_z
+        TC_loss = log_q_z - log_prod_q_z
+        dimension_wise_KL = log_prod_q_z - log_prior
+
+        return recon_loss.mean()/dataset_size, (self.beta * TC_loss).mean(), (self.gamma * dimension_wise_KL).mean()
+
+        # return (
+        #     (
+        #             recon_loss
+        #             + self.alpha * mutual_info_loss
+        #             + self.beta * TC_loss
+        #             + self.gamma * dimension_wise_KL
+        #     ).mean(dim=0),
+        #     recon_loss.mean(dim=0),
+        #     (
+        #             self.alpha * mutual_info_loss
+        #             + self.beta * TC_loss
+        #             + self.gamma * dimension_wise_KL
+        #     ).mean(dim=0),
+        # )
 
 
 class BigJointDiscriminator(nn.Module):
@@ -314,5 +380,5 @@ class BigJointDiscriminator(nn.Module):
         elif x is None and z is not None:
             sz, feature_z = self.discriminator_z(z)
             # sx_f, _ = self.discriminator_j(feature_x)
-            return sz
+            return sz, feature_z
 

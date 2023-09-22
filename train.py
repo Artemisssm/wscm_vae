@@ -71,7 +71,7 @@ else:
 print('Build models...')
 model = WVAE(args.latent_dim, args.g_conv_dim, args.image_size,
              args.enc_dist, args.enc_arch, args.enc_fc_size, args.enc_noise_dim, args.dec_dist,
-             args.prior, num_label, A, args.reconstruction_loss)
+             args.prior, num_label, A, args.reconstruction_loss, args.use_mss, args.alpha, args.beta, args.gamma)
 
 discriminator = BigJointDiscriminator(args.latent_dim, args.d_conv_dim, args.image_size,
                                           args.dis_fc_size)
@@ -172,9 +172,9 @@ for epoch in range(args.start_epoch, args.start_epoch + args.n_epochs):
 
             # Get inferred latent z = E(x) and generated image x = G(z)
             if 'scm' in args.prior: # 如果args.prior中包含'scm'
-                x_fake, z_fake, z_mu, z_logvar = model(x) # 调用模型，得到编码后的隐变量z_fake，生成后的图像x_fake，真实的隐变量z和其他输出，并赋值给相应的变量
+                x_fake, z,  z_fake, z_mu, z_logvar = model(x) # 调用模型，得到编码后的隐变量z_fake，生成后的图像x_fake，真实的隐变量z和其他输出，并赋值给相应的变量
             else: # 否则
-                x_fake, z_fake, z_mu, z_logvar = model(x) # 调用模型，得到编码后的隐变量z_fake，生成后的图像x_fake和其他输出，并赋值给相应的变量
+                x_fake, z,  z_fake, z_mu, z_logvar = model(x) # 调用模型，得到编码后的隐变量z_fake，生成后的图像x_fake和其他输出，并赋值给相应的变量
 
             # Compute D loss
             x_score, x_feature = discriminator(x) # 调用判别器，得到编码后的隐变量z_fake对应的分数，并赋值给encoder_score
@@ -214,9 +214,9 @@ for epoch in range(args.start_epoch, args.start_epoch + args.n_epochs):
 
                 # Get inferred latent z = E(x) and generated image x = G(z)
             if 'scm' in args.prior:  # 如果args.prior中包含'scm'
-                x_fake, z_fake, z_mu, z_logvar = model(x)  # 调用模型，得到编码后的隐变量z_fake，生成后的图像x_fake，真实的隐变量z和其他输出，并赋值给相应的变量
+                x_fake, z,  z_fake, z_mu, z_logvar = model(x)  # 调用模型，得到编码后的隐变量z_fake，生成后的图像x_fake，真实的隐变量z和其他输出，并赋值给相应的变量
             else:  # 否则
-                x_fake, z_fake, z_mu, z_logvar = model(x)  # 调用模型，得到编码后的隐变量z_fake，生成后的图像x_fake和其他输出，并赋值给相应的变量
+                x_fake, z,  z_fake, z_mu, z_logvar = model(x)  # 调用模型，得到编码后的隐变量z_fake，生成后的图像x_fake和其他输出，并赋值给相应的变量
 
             model.zero_grad()
             if sup_flag.sum() > 0:  # 如果sup_flag中为True的元素个数大于0，说明有有效的标签
@@ -236,9 +236,9 @@ for epoch in range(args.start_epoch, args.start_epoch + args.n_epochs):
             # KLD = -0.5 * torch.sum(1 + z_logvar - z_mu.pow(2) - z_logvar.exp(), dim=-1)  # 调用判别器，得到编码后的隐变量z_fake对应的分数，并赋值给encoder_score
 
             # z_fake_s = discriminator(x_fake, z_fake)
-            loss_r, recon_loss, KLD = model.module.loss_function(x_fake, x, z_mu, z_logvar, x.shape[0], discriminator)
+            recon_loss, TC_loss, KLD = model.module.loss_function(x_fake, x, z_mu, z_logvar, z_fake, x.shape[0], discriminator)
 
-            loss = loss_r + celoss(discriminator(x_fake)[0], one) + sup_loss * args.sup_coef
+            loss = recon_loss + TC_loss + KLD + celoss(discriminator(x_fake)[0], one) + sup_loss * args.sup_coef
             # r_encoder = torch.exp(z_fake_s.detach())  # 对decoder_score进行detach操作，然后取指数，并赋值给r_decoder
             # s_encoder = r_encoder.clamp(0.5, 2)  # 对r_decoder进行截断操作，使其范围在0.5到2之间，并赋值给s_decoder
             # z_fake_s_s = (s_encoder * z_fake_s).mean()  # 计算解码器的损失函数，使用s_decoder和decoder_score的乘积的负平均值，并赋值给loss_decoder

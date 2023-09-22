@@ -23,7 +23,7 @@ def get_config():
     parser.add_argument('--g_steps_per_iter', type=int, default=1, help='how many G updates per iteration')
     parser.add_argument('--n_epochs', type=int, default=300)
     parser.add_argument('--start_epoch', type=int, default=1)
-    parser.add_argument('--seed', type=int, default=22)
+    parser.add_argument('--seed', type=int, default=4)
 
     # Model settings
     parser.add_argument('--latent_dim', type=int, default=6)
@@ -72,7 +72,7 @@ def get_config():
 
     # loss
     parser.add_argument('--alpha', type=float, default=1.)
-    parser.add_argument('--beta', type=float, default=2.)
+    parser.add_argument('--beta', type=float, default=4.)
     parser.add_argument('--gamma', type=float, default=1.)
     parser.add_argument('--reconstruction_loss', type=str, default='mse', choices=['mse', 'bce'])
     parser.add_argument('--use_mss', type=bool, default=True)
