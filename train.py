@@ -62,7 +62,7 @@ if 'scm' in args.prior:
         A[0, 3:6] = 1
         A[1, 2:6] = 1
     elif args.labels == 'tre':
-        A[0, 4:6] = 1
+        A[0, 4:7] = 1
         A[1, 2:4] = 1
         A[3, 4:7] = 1
 else:
