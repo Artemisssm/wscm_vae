@@ -158,7 +158,8 @@ for epoch in range(args.start_epoch, args.start_epoch + args.n_epochs):
                 mm, ss = get_stats()  # 调用get_stats函数，获取训练集的均值和标准差，并赋值给mm和ss
                 label = (label - mm) / ss  # 用mm和ss对label进行标准化，使其均值为0，标准差为1，并赋值给label
             num_labels = len(label_idx)  # 获取label_idx的长度，并赋值给num_labels
-            label = label.to(device)  # 把label转移到device上，并赋值给label
+            label_mean = label.to(device)  # 把label转移到device上，并赋值给label
+            label_var = torch.ones(label_mean.shape).to(device)
 
 
         for _ in range(args.d_steps_per_iter): # 循环args.d_steps_per_iter次
@@ -172,9 +173,9 @@ for epoch in range(args.start_epoch, args.start_epoch + args.n_epochs):
 
             # Get inferred latent z = E(x) and generated image x = G(z)
             if 'scm' in args.prior: # 如果args.prior中包含'scm'
-                x_fake, z,  z_fake, z_mu, z_logvar = model(x) # 调用模型，得到编码后的隐变量z_fake，生成后的图像x_fake，真实的隐变量z和其他输出，并赋值给相应的变量
+                x_fake, z, z_mu_fake, z_logvar_fake, z_mu, z_logvar, label_z_q = model(x) # 调用模型，得到编码后的隐变量z_fake，生成后的图像x_fake，真实的隐变量z和其他输出，并赋值给相应的变量
             else: # 否则
-                x_fake, z,  z_fake, z_mu, z_logvar = model(x) # 调用模型，得到编码后的隐变量z_fake，生成后的图像x_fake和其他输出，并赋值给相应的变量
+                x_fake, z, z_mu_fake, z_logvar_fake, z_mu, z_logvar, label_z_q = model(x) # 调用模型，得到编码后的隐变量z_fake，生成后的图像x_fake和其他输出，并赋值给相应的变量
 
             # Compute D loss
             x_score, x_feature = discriminator(x) # 调用判别器，得到编码后的隐变量z_fake对应的分数，并赋值给encoder_score
@@ -214,31 +215,35 @@ for epoch in range(args.start_epoch, args.start_epoch + args.n_epochs):
 
                 # Get inferred latent z = E(x) and generated image x = G(z)
             if 'scm' in args.prior:  # 如果args.prior中包含'scm'
-                x_fake, z,  z_fake, z_mu, z_logvar = model(x)  # 调用模型，得到编码后的隐变量z_fake，生成后的图像x_fake，真实的隐变量z和其他输出，并赋值给相应的变量
+                x_fake, z, z_mu_fake, z_logvar_fake, z_mu, z_logvar, label_z_q = model(x)  # 调用模型，得到编码后的隐变量z_fake，生成后的图像x_fake，真实的隐变量z和其他输出，并赋值给相应的变量
             else:  # 否则
-                x_fake, z,  z_fake, z_mu, z_logvar = model(x)  # 调用模型，得到编码后的隐变量z_fake，生成后的图像x_fake和其他输出，并赋值给相应的变量
+                x_fake, z, z_mu_fake, z_logvar_fake, z_mu, z_logvar, label_z_q = model(x)  # 调用模型，得到编码后的隐变量z_fake，生成后的图像x_fake和其他输出，并赋值给相应的变量
 
             model.zero_grad()
-            if sup_flag.sum() > 0:  # 如果sup_flag中为True的元素个数大于0，说明有有效的标签
-                label_z = z[sup_flag, :num_labels]  # 用sup_flag筛选出有效的隐变量，并用num_labels选择需要的列，并赋值给label_z
-                if 'pendulum' or 'tree' in args.dataset:  # 如果args.dataset中包含'pendulum'
-                    if args.sup_type == 'ce':  # 如果args.sup_type是'ce'
-                        # CE loss
-                        sup_loss = celoss(label_z, label)  # 计算label_z和label之间的交叉熵损失，并赋值给sup_loss
-                    else:  # 否则
-                        # l2 loss
-                        sup_loss = nn.MSELoss()(label_z, label)  # 计算label_z和label之间的均方误差损失，并赋值给sup_loss
-                else:  # 否则
-                    sup_loss = celoss(label_z, label)  # 计算label_z和label之间的交叉熵损失，并赋值给sup_loss，label是经过先验之后得到的标签，label_z是刚得到的标签
-            else:  # 否则
-                sup_loss = torch.zeros([1], device=device)  # 生成一个全零张量，并赋值给sup_loss
+            # if sup_flag.sum() > 0:  # 如果sup_flag中为True的元素个数大于0，说明有有效的标签
+            #     label_z = z_g[sup_flag, :num_labels]  # 用sup_flag筛选出有效的隐变量，并用num_labels选择需要的列，并赋值给label_z
+            #     if 'pendulum' or 'tree' in args.dataset:  # 如果args.dataset中包含'pendulum'
+            #         if args.sup_type == 'ce':  # 如果args.sup_type是'ce'
+            #             # CE loss
+            #             sup_loss = celoss(label_z, label_mean)  # 计算label_z和label之间的交叉熵损失，并赋值给sup_loss
+            #         else:  # 否则
+            #             # l2 loss
+            #             sup_loss = nn.MSELoss()(label_z, label_mean)  # 计算label_z和label之间的均方误差损失，并赋值给sup_loss
+            #     else:  # 否则
+            #         sup_loss = celoss(label_z, label_mean)  # 计算label_z和label之间的交叉熵损失，并赋值给sup_loss，label是经过先验之后得到的标签，label_z是刚得到的标签
+            # else:  # 否则
+            #     sup_loss = torch.zeros([1], device=device)  # 生成一个全零张量，并赋值给sup_loss
 
-            # KLD = -0.5 * torch.sum(1 + z_logvar - z_mu.pow(2) - z_logvar.exp(), dim=-1)  # 调用判别器，得到编码后的隐变量z_fake对应的分数，并赋值给encoder_score
+
+            kl = (0.5 * torch.sum(torch.log(label_var / z_logvar_fake[:, :num_label]) - 1 + z_logvar_fake[:, :num_label] / label_var + (label_z_q - label_mean) ** 2 / z_logvar_fake[:, :num_label], dim=1)).mean()
+
+
+            KLD = (-0.5 * torch.sum(1 + z_logvar - z_mu.pow(2) - z_logvar.exp(), dim=-1)).mean()  # 调用判别器，得到编码后的隐变量z_fake对应的分数，并赋值给encoder_score
 
             # z_fake_s = discriminator(x_fake, z_fake)
-            recon_loss, TC_loss, KLD = model.module.loss_function(x_fake, x, z_mu, z_logvar, z_fake, x.shape[0], discriminator)
+            recon_loss, tc = model.module.loss_function(x_fake, x, z_mu_fake, z_logvar_fake, z, x.shape[0], discriminator)
 
-            loss = recon_loss + TC_loss + KLD + celoss(discriminator(x_fake)[0], one) + sup_loss * args.sup_coef
+            loss = recon_loss + KLD + celoss(discriminator(x_fake)[0], one) + kl + tc
             # r_encoder = torch.exp(z_fake_s.detach())  # 对decoder_score进行detach操作，然后取指数，并赋值给r_decoder
             # s_encoder = r_encoder.clamp(0.5, 2)  # 对r_decoder进行截断操作，使其范围在0.5到2之间，并赋值给s_decoder
             # z_fake_s_s = (s_encoder * z_fake_s).mean()  # 计算解码器的损失函数，使用s_decoder和decoder_score的乘积的负平均值，并赋值给loss_decoder
@@ -286,9 +291,9 @@ for epoch in range(args.start_epoch, args.start_epoch + args.n_epochs):
 
             if batch_idx == 0 or (batch_idx + 1) % args.print_every == 0:
                 log = (
-                    'Train Epoch: {} ({:.0f}%)\t, loss_d: {:.4f}, recon_loss:{:.4f}, KLD:{:.4f}, Sup loss: {:.4f}, loss: {:.4f}'.format(
+                    'Train Epoch: {} ({:.0f}%)\t, loss_d: {:.4f}, recon_loss:{:.4f}, KLD:{:.4f}, kl: {:.4f}, loss: {:.4f}'.format(
                         epoch, 100. * batch_idx / len(train_loader),
-                        loss_d.item(), recon_loss.item(), KLD.item(), sup_loss.item(), loss.item()))
+                        loss_d.item(), recon_loss.item(), KLD.item(), kl.item(), loss.item()))
                 print(log)
                 log_file.write(log + '\n')
                 log_file.flush()
