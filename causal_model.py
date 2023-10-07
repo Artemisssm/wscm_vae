@@ -145,7 +145,7 @@ class SCM(nn.Module):
         return z
 
     def inv_cal(self, eps):  # (I-A)^{-1}*eps
-        adj_normalized = torch.inverse(torch.eye(self.A.shape[0], device=self.A.device) - self.A) #计算A的逆拉普拉斯矩阵
+        adj_normalized = torch.inverse(torch.eye(self.A.shape[0], device=self.A.device) - self.A.t()) #计算A的逆拉普拉斯矩阵
         z_pre = torch.matmul(eps, adj_normalized)
         return z_pre
 

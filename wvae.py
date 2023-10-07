@@ -158,7 +158,7 @@ class WVAE(nn.Module):
 
     def traverse(self, eps, gap=3, n=10):
         dim = self.num_label if self.num_label is not None else self.latent_dim  # 如果self.num_label不是None，就把它赋值给dim，否则就把self.latent_dim赋值给dim
-        sample = torch.zeros((n * dim, 3, self.image_size, self.image_size))  # 生成一个全零张量，并赋值给sample
+        sample = torch.zeros((n * (dim+1), 3, self.image_size, self.image_size))  # 生成一个全零张量，并赋值给sample
         eps = eps.expand(n, self.latent_dim)  # 把eps扩展到(n, self.latent_dim)的维度，并赋值给eps
         if self.prior_dist == 'gaussian' or self.prior_dist == 'uniform':  # 如果self.prior_dist是'gaussian'或者'uniform'
             z = eps  # 把eps赋值给z
@@ -172,6 +172,7 @@ class WVAE(nn.Module):
             z_new[:, idx] = traversals  # 把traversals赋值给z_new的第idx个维度
             with torch.no_grad():  # 不计算梯度
                 sample[n * idx:(n * (idx + 1)), :, :, :] = self.decoder(z_new)  # 调用self.decoder，得到生成的图像，并赋值给sample的相应位置
+        sample[n * (dim+1) - n:n * (dim+1), :, :, :] = self.decoder(z)
         return sample  # 返回sample
 
     def forward(self, x=None, z=None, recon=False, gen=False, infer_mean=True):
@@ -180,6 +181,7 @@ class WVAE(nn.Module):
         if x is not None and z is None:  # 如果x和z都不是None
             if self.enc_dist == 'gaussian':  # 如果self.enc_dist是'gaussian'
                 z_mu, z_logvar = self.encoder(x)  # 调用self.encoder，得到隐变量的均值和对数方差，并赋值给z_mu和z_logvar
+                z_logvar = torch.ones(z_logvar.shape, device=x.device)
             else:  # deterministic or implicit
                 z_fake = self.encoder(x)  # 调用self.encoder，得到隐变量，并赋值给z_fake
 
