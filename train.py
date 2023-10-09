@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 
 import seaborn as sns
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 device = torch.device('cuda')
 args = get_config()
 
@@ -173,26 +173,30 @@ for epoch in range(args.start_epoch, args.start_epoch + args.n_epochs):
 
             # Get inferred latent z = E(x) and generated image x = G(z)
             if 'scm' in args.prior: # 如果args.prior中包含'scm'
-                x_fake, z, z_mu_fake, z_logvar_fake, z_mu, z_logvar, label_z_q = model(x) # 调用模型，得到编码后的隐变量z_fake，生成后的图像x_fake，真实的隐变量z和其他输出，并赋值给相应的变量
+                x_fake_p = model(z=z) # 调用模型，得到编码后的隐变量z_fake，生成后的图像x_fake，真实的隐变量z和其他输出，并赋值给相应的变量
+                x_fake, z, z_mu_fake, z_logvar_fake, z_mu, z_logvar, label_z_q = model(x)
             else: # 否则
-                x_fake, z, z_mu_fake, z_logvar_fake, z_mu, z_logvar, label_z_q = model(x) # 调用模型，得到编码后的隐变量z_fake，生成后的图像x_fake和其他输出，并赋值给相应的变量
+                x_fake_p = model(z=z) # 调用模型，得到编码后的隐变量z_fake，生成后的图像x_fake和其他输出，并赋值给相应的变量
+                x_fake, z, z_mu_fake, z_logvar_fake, z_mu, z_logvar, label_z_q = model(x)
 
             # Compute D loss
             x_score, x_feature = discriminator(x) # 调用判别器，得到编码后的隐变量z_fake对应的分数，并赋值给encoder_score
             x_fake_score, x_fake_feature = discriminator(x_fake.detach()) # 调用判别器，得到生成后的图像x_fake对应的分数，并赋值给decoder_score
+            x_fake_p_score, x_fake_p_feature = discriminator(x_fake_p.detach())  # 调用判别器，得到生成后的图像x_fake对应的分数，并赋值给decoder_score
 
             one = torch.full((x.size(0),), 1., device=x.device)
             zero = torch.full((x.size(0),), 0., device=x.device)
 
             loss_d_x = celoss(x_score, one)
             loss_d_x_fake = celoss(x_fake_score, zero)
+            loss_d_x_fake_p = celoss(x_fake_p_score, zero)
 
             # z_fake_s = discriminator(x_fake.detach(), z_fake.detach())
             # z_s = discriminator(x_fake.detach(), z)
             # recon_loss = F.softplus(z_s).mean() + F.softplus(-z_fake_s).mean()
             # recon_loss = celoss(z_fake_s, z_s)
 
-            loss_d = loss_d_x + loss_d_x_fake
+            loss_d = 0.2 * (loss_d_x + loss_d_x_fake + loss_d_x_fake_p)
 
             # encoder_score = discriminator(x_fake.detach(), z_fake.detach())
             # decoder_score = discriminator(x_fake.detach(), z.detach())
@@ -243,7 +247,7 @@ for epoch in range(args.start_epoch, args.start_epoch + args.n_epochs):
             # z_fake_s = discriminator(x_fake, z_fake)
             recon_loss, tc = model.module.loss_function(x_fake, x, z_mu_fake, z_logvar_fake, z, x.shape[0], discriminator)
 
-            loss = recon_loss + KLD + celoss(discriminator(x_fake)[0], one) + kl + tc
+            loss = 1.2 * recon_loss + KLD + kl + tc
             # r_encoder = torch.exp(z_fake_s.detach())  # 对decoder_score进行detach操作，然后取指数，并赋值给r_decoder
             # s_encoder = r_encoder.clamp(0.5, 2)  # 对r_decoder进行截断操作，使其范围在0.5到2之间，并赋值给s_decoder
             # z_fake_s_s = (s_encoder * z_fake_s).mean()  # 计算解码器的损失函数，使用s_decoder和decoder_score的乘积的负平均值，并赋值给loss_decoder
