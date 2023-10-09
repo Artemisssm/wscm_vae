@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="ac265a80-681a-4fe5-b76e-1640d03e64db" name="Changes" comment="基础">
+    <list default="true" id="ac265a80-681a-4fe5-b76e-1640d03e64db" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/config.py" beforeDir="false" afterPath="$PROJECT_DIR$/config.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/train.py" beforeDir="false" afterPath="$PROJECT_DIR$/train.py" afterDir="false" />
@@ -79,11 +79,11 @@
       <window_info anchor="bottom" id="TODO" />
       <window_info anchor="bottom" id="File Transfer" />
       <window_info anchor="bottom" id="Python Console" />
-      <window_info active="true" anchor="bottom" id="Run" visible="true" weight="0.32994187" />
+      <window_info active="true" anchor="bottom" id="Run" visible="true" weight="0.4026163" />
       <window_info anchor="bottom" id="Find" show_stripe_button="false" weight="0.32994187" />
-      <window_info anchor="bottom" id="Version Control" order="0" weight="0.36870155" />
+      <window_info anchor="bottom" id="Version Control" order="0" weight="0.4026163" />
       <window_info anchor="bottom" id="Problems View" order="1" weight="0.32994187" />
-      <window_info anchor="bottom" id="Terminal" order="2" weight="0.43168604" />
+      <window_info anchor="bottom" id="Terminal" order="2" weight="0.47044572" />
       <window_info anchor="bottom" id="Services" order="3" weight="0.32994187" />
       <window_info anchor="bottom" id="Debug" order="4" weight="0.4258721" />
       <window_info anchor="right" id="Endpoints" />
@@ -219,7 +219,7 @@
       <workItem from="1695095495336" duration="111000" />
       <workItem from="1695096834723" duration="1241000" />
       <workItem from="1695112226723" duration="507000" />
-      <workItem from="1696814453893" duration="1158000" />
+      <workItem from="1696814453893" duration="7345000" />
     </task>
     <task id="LOCAL-00001" summary="one-resnet">
       <option name="closed" value="true" />
@@ -245,7 +245,15 @@
       <option name="project" value="LOCAL" />
       <updated>1694834253691</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL-00004" summary="稳定后引入噪声">
+      <option name="closed" value="true" />
+      <created>1696815649505</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1696815649505</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -309,7 +317,8 @@
     <MESSAGE value="two-resnet" />
     <MESSAGE value="one-resnet" />
     <MESSAGE value="基础" />
-    <option name="LAST_COMMIT_MESSAGE" value="基础" />
+    <MESSAGE value="稳定后引入噪声" />
+    <option name="LAST_COMMIT_MESSAGE" value="稳定后引入噪声" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

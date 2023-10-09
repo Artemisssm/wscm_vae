@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 
 import seaborn as sns
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 device = torch.device('cuda')
 args = get_config()
 
@@ -164,6 +164,7 @@ for epoch in range(args.start_epoch, args.start_epoch + args.n_epochs):
 
         for _ in range(args.d_steps_per_iter): # 循环args.d_steps_per_iter次
             discriminator.zero_grad() # 把判别器的梯度清零
+            model.zero_grad()
 
             # Sample z from prior p_z
             if args.prior == 'uniform': # 如果先验分布是均匀分布
@@ -196,34 +197,33 @@ for epoch in range(args.start_epoch, args.start_epoch + args.n_epochs):
             # recon_loss = F.softplus(z_s).mean() + F.softplus(-z_fake_s).mean()
             # recon_loss = celoss(z_fake_s, z_s)
 
-            loss_d = 0.2 * (loss_d_x + loss_d_x_fake + loss_d_x_fake_p)
+            loss_d = loss_d_x + loss_d_x_fake + loss_d_x_fake_p
 
             # encoder_score = discriminator(x_fake.detach(), z_fake.detach())
             # decoder_score = discriminator(x_fake.detach(), z.detach())
             # loss_d_three = F.softplus(decoder_score).mean() + F.softplus(-encoder_score).mean()
 
-            loss_d.backward()
+            # loss_d.backward()
 
-            D_optimizer.step() # 调用D_optimizer，更新判别器的参数
+            # D_optimizer.step() # 调用D_optimizer，更新判别器的参数
 
 
 
         # train model
         # model.zero_grad()
-        for _ in range(args.g_steps_per_iter):
+        # for _ in range(args.g_steps_per_iter):
+        #
+        #     if args.prior == 'uniform':  # 如果先验分布是均匀分布
+        #         z = torch.rand(x.size(0), args.latent_dim, device=x.device) * 2 - 1  # 生成一个服从[-1,1]区间的随机张量，并赋值给z
+        #     else:  # 否则
+        #         z = torch.randn(x.size(0), args.latent_dim, device=x.device)  # 生成一个服从标准正态分布的随机张量，并赋值给z
+        #
+        #         # Get inferred latent z = E(x) and generated image x = G(z)
+        #     if 'scm' in args.prior:  # 如果args.prior中包含'scm'
+        #         x_fake, z, z_mu_fake, z_logvar_fake, z_mu, z_logvar, label_z_q = model(x)  # 调用模型，得到编码后的隐变量z_fake，生成后的图像x_fake，真实的隐变量z和其他输出，并赋值给相应的变量
+        #     else:  # 否则
+        #         x_fake, z, z_mu_fake, z_logvar_fake, z_mu, z_logvar, label_z_q = model(x)  # 调用模型，得到编码后的隐变量z_fake，生成后的图像x_fake和其他输出，并赋值给相应的变量
 
-            if args.prior == 'uniform':  # 如果先验分布是均匀分布
-                z = torch.rand(x.size(0), args.latent_dim, device=x.device) * 2 - 1  # 生成一个服从[-1,1]区间的随机张量，并赋值给z
-            else:  # 否则
-                z = torch.randn(x.size(0), args.latent_dim, device=x.device)  # 生成一个服从标准正态分布的随机张量，并赋值给z
-
-                # Get inferred latent z = E(x) and generated image x = G(z)
-            if 'scm' in args.prior:  # 如果args.prior中包含'scm'
-                x_fake, z, z_mu_fake, z_logvar_fake, z_mu, z_logvar, label_z_q = model(x)  # 调用模型，得到编码后的隐变量z_fake，生成后的图像x_fake，真实的隐变量z和其他输出，并赋值给相应的变量
-            else:  # 否则
-                x_fake, z, z_mu_fake, z_logvar_fake, z_mu, z_logvar, label_z_q = model(x)  # 调用模型，得到编码后的隐变量z_fake，生成后的图像x_fake和其他输出，并赋值给相应的变量
-
-            model.zero_grad()
             # if sup_flag.sum() > 0:  # 如果sup_flag中为True的元素个数大于0，说明有有效的标签
             #     label_z = z_g[sup_flag, :num_labels]  # 用sup_flag筛选出有效的隐变量，并用num_labels选择需要的列，并赋值给label_z
             #     if 'pendulum' or 'tree' in args.dataset:  # 如果args.dataset中包含'pendulum'
@@ -247,7 +247,7 @@ for epoch in range(args.start_epoch, args.start_epoch + args.n_epochs):
             # z_fake_s = discriminator(x_fake, z_fake)
             recon_loss, tc = model.module.loss_function(x_fake, x, z_mu_fake, z_logvar_fake, z, x.shape[0], discriminator)
 
-            loss = 1.2 * recon_loss + KLD + kl + tc
+            loss = 1.2 * recon_loss + KLD + kl + tc + 0.2 * loss_d
             # r_encoder = torch.exp(z_fake_s.detach())  # 对decoder_score进行detach操作，然后取指数，并赋值给r_decoder
             # s_encoder = r_encoder.clamp(0.5, 2)  # 对r_decoder进行截断操作，使其范围在0.5到2之间，并赋值给s_decoder
             # z_fake_s_s = (s_encoder * z_fake_s).mean()  # 计算解码器的损失函数，使用s_decoder和decoder_score的乘积的负平均值，并赋值给loss_decoder
@@ -269,6 +269,7 @@ for epoch in range(args.start_epoch, args.start_epoch + args.n_epochs):
             # z_s_s = -(s_encoder * z_s).mean()
             loss.backward()  # 对loss_decoder进行反向传播，计算梯度
 
+            D_optimizer.step()
             encoder_optimizer.step()
             decoder_optimizer.step()  # 调用decoder_optimizer，更新解码器的参数
             if 'scm' in args.prior:  # 如果args.prior中包含'scm'

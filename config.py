@@ -23,7 +23,7 @@ def get_config():
     parser.add_argument('--g_steps_per_iter', type=int, default=1, help='how many G updates per iteration')
     parser.add_argument('--n_epochs', type=int, default=300)
     parser.add_argument('--start_epoch', type=int, default=1)
-    parser.add_argument('--seed', type=int, default=9)
+    parser.add_argument('--seed', type=int, default=10)
 
     # Model settings
     parser.add_argument('--latent_dim', type=int, default=9)
