@@ -1,9 +1,137 @@
-<mxfile host="app.diagrams.net" modified="2023-12-18T12:26:39.562Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" version="22.1.11" etag="32OdkSvxYr5VR3rFqArr" type="github">
+<mxfile host="app.diagrams.net" modified="2023-12-18T12:56:55.236Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" etag="Deq7sUeaFgLQhMuSvxIJ" version="22.1.11" type="github">
   <diagram name="第 1 页" id="nCzJpJkwwVfQVkpkTosD">
-    <mxGraphModel>
+    <mxGraphModel dx="1434" dy="738" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
+        <mxCell id="gYeVAs_rca1eV71k5vBb-1" value="变分自编码器研究" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="70" y="90" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="gYeVAs_rca1eV71k5vBb-2" value="生成对抗网络研究" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="200" y="90" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="gYeVAs_rca1eV71k5vBb-3" value="图注意力网络研究" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="330" y="90" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="gYeVAs_rca1eV71k5vBb-4" value="因果特征解耦研究" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="470" y="90" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="gYeVAs_rca1eV71k5vBb-5" value="潜在表征干预研究" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="590" y="90" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="gYeVAs_rca1eV71k5vBb-6" value="&lt;p class=&quot;MsoNormal&quot;&gt;&lt;font face=&quot;宋体&quot;&gt;基于&lt;/font&gt;GAT潜在表征干预的因果特征解耦模型研究&lt;/p&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="280" y="190" width="190" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="gYeVAs_rca1eV71k5vBb-14" value="" style="shape=partialRectangle;whiteSpace=wrap;html=1;bottom=1;right=1;left=1;top=0;fillColor=none;routingCenterX=-0.5;" vertex="1" parent="1">
+          <mxGeometry x="110" y="130" width="530" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="gYeVAs_rca1eV71k5vBb-15" value="" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="gYeVAs_rca1eV71k5vBb-14" target="gYeVAs_rca1eV71k5vBb-6">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="390" y="410" as="sourcePoint" />
+            <mxPoint x="440" y="360" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="gYeVAs_rca1eV71k5vBb-23" value="因果特征" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="265" y="480" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="gYeVAs_rca1eV71k5vBb-24" value="其他特征" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="395" y="480" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="gYeVAs_rca1eV71k5vBb-27" value="" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="1" source="gYeVAs_rca1eV71k5vBb-6">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="390" y="400" as="sourcePoint" />
+            <mxPoint x="375" y="250" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="gYeVAs_rca1eV71k5vBb-28" value="外源噪声" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="265" y="330" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="gYeVAs_rca1eV71k5vBb-29" value="内生变量" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="325" y="400" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="gYeVAs_rca1eV71k5vBb-33" value="" style="shape=partialRectangle;whiteSpace=wrap;html=1;bottom=1;right=1;left=1;top=0;fillColor=none;routingCenterX=-0.5;rotation=-180;" vertex="1" parent="1">
+          <mxGeometry x="310" y="460" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="gYeVAs_rca1eV71k5vBb-34" value="" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="gYeVAs_rca1eV71k5vBb-29" target="gYeVAs_rca1eV71k5vBb-33">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="385" y="490" as="sourcePoint" />
+            <mxPoint x="435" y="440" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="gYeVAs_rca1eV71k5vBb-35" value="解耦" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="265" y="270" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="gYeVAs_rca1eV71k5vBb-36" value="干预" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="390" y="270" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="gYeVAs_rca1eV71k5vBb-37" value="" style="shape=partialRectangle;whiteSpace=wrap;html=1;bottom=1;right=1;left=1;top=0;fillColor=none;routingCenterX=-0.5;rotation=-180;" vertex="1" parent="1">
+          <mxGeometry x="315" y="250" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="gYeVAs_rca1eV71k5vBb-38" value="" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="gYeVAs_rca1eV71k5vBb-35" target="gYeVAs_rca1eV71k5vBb-28">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="390" y="400" as="sourcePoint" />
+            <mxPoint x="440" y="350" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="gYeVAs_rca1eV71k5vBb-40" value="" style="edgeStyle=segmentEdgeStyle;endArrow=classic;html=1;curved=0;rounded=0;endSize=8;startSize=8;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="1" source="gYeVAs_rca1eV71k5vBb-28" target="gYeVAs_rca1eV71k5vBb-29">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="390" y="400" as="sourcePoint" />
+            <mxPoint x="440" y="350" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="310" y="380" />
+              <mxPoint x="370" y="380" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="gYeVAs_rca1eV71k5vBb-41" value="" style="edgeStyle=segmentEdgeStyle;endArrow=classic;html=1;curved=0;rounded=0;endSize=8;startSize=8;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="1" source="gYeVAs_rca1eV71k5vBb-36">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="485" y="400" as="sourcePoint" />
+            <mxPoint x="370" y="400" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="435" y="350" />
+              <mxPoint x="370" y="350" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="gYeVAs_rca1eV71k5vBb-42" value="潜在表征" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="324" y="560" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="gYeVAs_rca1eV71k5vBb-43" value="" style="shape=partialRectangle;whiteSpace=wrap;html=1;bottom=1;right=1;left=1;top=0;fillColor=none;routingCenterX=-0.5;rotation=0;" vertex="1" parent="1">
+          <mxGeometry x="310" y="520" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="gYeVAs_rca1eV71k5vBb-44" value="" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="1" source="gYeVAs_rca1eV71k5vBb-43" target="gYeVAs_rca1eV71k5vBb-42">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="390" y="400" as="sourcePoint" />
+            <mxPoint x="440" y="350" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="gYeVAs_rca1eV71k5vBb-45" value="" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="1" source="gYeVAs_rca1eV71k5vBb-42">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="390" y="400" as="sourcePoint" />
+            <mxPoint x="369" y="620" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="gYeVAs_rca1eV71k5vBb-46" value="重建数据" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="325" y="620" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="gYeVAs_rca1eV71k5vBb-47" value="计算损失" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="325" y="680" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="gYeVAs_rca1eV71k5vBb-48" value="" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="1" source="gYeVAs_rca1eV71k5vBb-46" target="gYeVAs_rca1eV71k5vBb-47">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="390" y="600" as="sourcePoint" />
+            <mxPoint x="440" y="550" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="gYeVAs_rca1eV71k5vBb-49" value="评价并改进算法" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="325" y="740" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="gYeVAs_rca1eV71k5vBb-50" value="" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="1" source="gYeVAs_rca1eV71k5vBb-47" target="gYeVAs_rca1eV71k5vBb-49">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="390" y="600" as="sourcePoint" />
+            <mxPoint x="440" y="550" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
       </root>
     </mxGraphModel>
   </diagram>
