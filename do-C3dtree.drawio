@@ -1,4 +1,4 @@
-<mxfile host="app.diagrams.net" modified="2024-01-15T07:12:43.846Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" etag="UJAAphGkR8YBxQn7kKYn" version="22.1.18" type="github">
+<mxfile host="app.diagrams.net" modified="2024-01-15T07:13:37.932Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" etag="JUz2gnxSGxzVyYdcBMDP" version="22.1.18" type="github">
   <diagram name="第 1 页" id="9NlgPFvQ4lZjxvtHbO5Q">
     <mxGraphModel dx="1434" dy="738" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
@@ -139,7 +139,7 @@
         <mxCell id="ABRJrXDuUGVzNbutqBpz-26" value="DSVG" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=15;" vertex="1" parent="1">
           <mxGeometry x="140" y="440" width="70" height="30" as="geometry" />
         </mxCell>
-        <mxCell id="ABRJrXDuUGVzNbutqBpz-27" value="SCM-VAE" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=15;" vertex="1" parent="1">
+        <mxCell id="ABRJrXDuUGVzNbutqBpz-27" value="SCM_VAE" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=15;" vertex="1" parent="1">
           <mxGeometry x="700" y="440" width="90" height="30" as="geometry" />
         </mxCell>
       </root>
