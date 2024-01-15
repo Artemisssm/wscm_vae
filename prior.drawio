@@ -1,9 +1,30 @@
-<mxfile host="app.diagrams.net" modified="2024-01-15T13:32:09.071Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" version="22.1.18" etag="3JA7CPIiX3bvz4dWnm7f" type="github">
+<mxfile host="app.diagrams.net" modified="2024-01-15T13:38:53.324Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" etag="WlOz0I1-6VI03CC9vb5K" version="22.1.18" type="github">
   <diagram name="第 1 页" id="nXLrCAXywMhfkzrj3yQS">
-    <mxGraphModel>
+    <mxGraphModel dx="1434" dy="738" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
+        <mxCell id="7ogSb8fjKF1HWpliJjE_-9" value="Date(1)" style="ellipse;whiteSpace=wrap;html=1;fontSize=15;" vertex="1" parent="1">
+          <mxGeometry x="180" y="90" width="80" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="7ogSb8fjKF1HWpliJjE_-11" value="Sun Angle(0)" style="ellipse;whiteSpace=wrap;html=1;fontSize=15;" vertex="1" parent="1">
+          <mxGeometry x="70" y="90" width="80" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="7ogSb8fjKF1HWpliJjE_-12" value="Leaf Color(2)" style="ellipse;whiteSpace=wrap;html=1;fontSize=15;" vertex="1" parent="1">
+          <mxGeometry x="300" y="90" width="80" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="7ogSb8fjKF1HWpliJjE_-13" value="Sun Angle(0)" style="ellipse;whiteSpace=wrap;html=1;fontSize=15;" vertex="1" parent="1">
+          <mxGeometry x="140" y="340" width="80" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="7ogSb8fjKF1HWpliJjE_-14" value="Sun Angle(0)" style="ellipse;whiteSpace=wrap;html=1;fontSize=15;" vertex="1" parent="1">
+          <mxGeometry x="360" y="200" width="80" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="7ogSb8fjKF1HWpliJjE_-15" value="Sun Angle(0)" style="ellipse;whiteSpace=wrap;html=1;fontSize=15;" vertex="1" parent="1">
+          <mxGeometry x="270" y="360" width="80" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="7ogSb8fjKF1HWpliJjE_-16" value="Sun Angle(0)" style="ellipse;whiteSpace=wrap;html=1;fontSize=15;" vertex="1" parent="1">
+          <mxGeometry x="70" y="190" width="80" height="60" as="geometry" />
+        </mxCell>
       </root>
     </mxGraphModel>
   </diagram>
