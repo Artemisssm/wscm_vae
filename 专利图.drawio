@@ -22,8 +22,8 @@
         <mxCell id="01VjT6T3kN2u5HqJVLsv-283" value="$$\log\left(\varepsilon_{\sigma}\right)$$" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=35;fontStyle=1" parent="1" vertex="1">
           <mxGeometry x="-60" y="519.25" width="630" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="01VjT6T3kN2u5HqJVLsv-342" value="潜在变量" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=35;fontStyle=1" parent="1" vertex="1">
-          <mxGeometry x="-0.7199999999999989" y="60" width="160" height="60" as="geometry" />
+        <mxCell id="01VjT6T3kN2u5HqJVLsv-342" value="潜在外生变量" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=35;fontStyle=1" parent="1" vertex="1">
+          <mxGeometry x="-35.72" y="60" width="230" height="60" as="geometry" />
         </mxCell>
         <mxCell id="01VjT6T3kN2u5HqJVLsv-348" value="" style="strokeWidth=1;html=1;shape=mxgraph.flowchart.annotation_1;align=left;pointerEvents=1;rotation=-180;fontSize=35;fontStyle=1" parent="1" vertex="1">
           <mxGeometry x="130" y="217" width="10" height="116" as="geometry" />
@@ -452,6 +452,9 @@
         </mxCell>
         <mxCell id="7ojNyr7eu1JYMKIjMpsM-24" value="$$z_{n}$$" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=35;fontStyle=1" parent="1" vertex="1">
           <mxGeometry x="655" y="465" width="60" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="0C5N5RCBFbtwvpwO86Xd-1" value="潜在内生变量" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=35;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="621" y="60" width="230" height="60" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
